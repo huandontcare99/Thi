@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ứng dụng Thi trắc nghiệm Online</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Thi Trắc Nghiệm Online</h1>
+            <div id="timer">Thời gian còn lại: <span>00:00</span></div>
+        </header>
+
+        <main id="quiz-area">
+            <div id="question-container">
+                <h2 id="question-text"></h2>
+                <div id="answer-options" class="options-grid">
+                    </div>
+            </div>
+
+            <div class="controls">
+                <button id="prev-btn" class="btn" disabled>Câu trước</button>
+                <button id="next-btn" class="btn">Câu kế tiếp</button>
+                <button id="submit-btn" class="btn submit-btn" style="display: none;">Nộp bài</button>
+            </div>
+        </main>
+
+        <div id="result-area" class="hidden">
+            <h2>Kết quả của bạn</h2>
+            <p>Điểm số: <span id="score"></span> / <span id="total-questions"></span></p>
+            <button id="restart-btn" class="btn">Làm lại</button>
+            <div id="result-details">
+                </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
