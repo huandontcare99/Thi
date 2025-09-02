@@ -12,7 +12,7 @@
     .sticky-top { position: sticky; top: 0; z-index: 50; }
     .shadow-card { box-shadow: 0 10px 25px rgba(0,0,0,.08), 0 4px 8px rgba(0,0,0,.06); }
     .option input[type="radio"] { display:none; }
-    .option label { display:block; padding:.85rem 1rem; border-radius:.9rem; border:1px solid rgba(0,0,0,.08); }
+    .option label { display:block; padding:.85rem 1rem; border-radius:.9rem; border:1px solid rgba(0,0,0,.08); cursor:pointer; }
     .option input[type="radio"]:checked + label { border-color: rgb(59 130 246); background: rgba(59,130,246,.08); }
     .option.locked label { opacity:.75; }
     .nav-btn-answered { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
@@ -167,44 +167,40 @@
     };
 
     // ====== UTIL ======
-    function escapeHtml(s){ return s.replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;','\\'':'&#39;'}[c])); }
     function shuffle(arr){ for (let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } }
     function formatTime(sec){ const m=String(Math.floor(sec/60)).padStart(2,'0'); const s=String(sec%60).padStart(2,'0'); return m+':'+s; }
-    function normalizeVN(s){ return s.normalize('NFD').replace(/\\p{M}+/gu,'').toLowerCase().replace(/[“”\"'\\`’]/g,'').replace(/\\s+/g,' ').trim(); }
+    function normalizeVN(s){ return s.normalize('NFD').replace(/\p{M}+/gu,'').toLowerCase().replace(/[“”\"'\`’]/g,'').replace(/\s+/g,' ').trim(); }
     function fromB64(id){ const raw = document.getElementById(id).textContent.trim(); if(!raw) return ''; const bin = atob(raw); const bytes = new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i); return new TextDecoder('utf-8').decode(bytes); }
     function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
 
     // ====== PARSER (TXT -> items) ======
     function parseExamTxtToJson(inputText, subject){
-      let text = inputText.replace(/\\r\\n|\\r/g, '\\n');
-      const parts = text.split(/(?=^\\s*Câu\\s+\\d+\\s*:)/m).filter(b => /^\\s*Câu\\s+\\d+\\s*:/m.test(b));
+      let text = inputText.replace(/\r\n|\r/g, '\n');
+      const parts = text.split(/(?=^\s*Câu\s+\d+\s*:)/m).filter(b => /^\s*Câu\s+\d+\s*:/m.test(b));
       const items = [];
 
       for (const raw of parts){
-        const mQ = raw.match(/^\\s*Câu\\s+(\\d+)\\s*:\\s*([\\s\\S]*)$/i);
+        const mQ = raw.match(/^\s*Câu\s+(\d+)\s*:\s*([\s\S]*)$/i);
         if(!mQ) continue;
         const qnum = parseInt(mQ[1],10);
         const afterQ = mQ[2];
 
-        // "Tất cả (các) đáp án"
-        const dividerRe = /^\\s*Tất\\s*cả\\s*(?:các\\s*)?đáp\\s*án\\s*:?.*$/mi;
+        const dividerRe = /^\s*Tất\s*cả\s*(?:các\s*)?đáp\s*án\s*:?.*$/mi;
         const mDiv = dividerRe.exec(afterQ);
         const before = mDiv ? afterQ.slice(0, mDiv.index) : afterQ;
         const optionsPart = mDiv ? afterQ.slice(mDiv.index) : "";
 
-        // Correct text
-        const mAns = before.match(/Đáp\\s*án\\s*đúng\\s*:\\s*(.+)/i);
+        const mAns = before.match(/Đáp\s*án\s*đúng\s*:\s*(.+)/i);
         const explicitCorrect = mAns ? mAns[1].trim() : null;
         const questionText = mAns ? before.slice(0, mAns.index).trim() : before.trim();
 
-        // Options
         const options = []; let correctIndex = null;
-        const rxOpt = /^\\s*([A-Z])\\.\\s*(.+?)\\s*$/gmi;
+        const rxOpt = /^\s*([A-Z])\.\s*(.+?)\s*$/gmi;
         let m; 
         while ((m = rxOpt.exec(optionsPart))){
           let txt = m[2].trim();
           const tick = /[✓✔]/.test(txt);
-          txt = txt.replace(/[✓✔]/g,'').replace(/\\s*\\.\\s*$/,'').trim();
+          txt = txt.replace(/[✓✔]/g,'').replace(/\s*\.\s*$/,'').trim();
           if (txt) options.push(txt);
           if (tick) correctIndex = options.length - 1;
         }
@@ -254,7 +250,7 @@
     // ====== SETUP UI ======
     function buildSetupUI(){
       const subs = Array.from(new Set(BANK.map(x=>x.subject)));
-      els.setupSubject.innerHTML = '<option value="all">Tất cả</option>' + subs.map(s=>`<option>${s}</option>`).join('');
+      els.setupSubject.innerHTML = '<option value="all">Tất cả</option>' + subs.map(s=>'<option>'+s+'</option>').join('');
       els.setupSubject.addEventListener('change', ()=>{ updateBankCount(); clampLimitToBank(); saveSetup(); });
       els.setupLimit.addEventListener('input', ()=> saveSetup());
       els.setupMinutes.addEventListener('input', ()=> saveSetup());
@@ -315,7 +311,6 @@
       const limit = clamp(state.setup.limit, 1, pool.length);
       const selected = pool.slice(0, limit);
 
-      // Build session items (with per-question option shuffle if needed)
       state.items = selected.map((it, i) => {
         const order = it.options.map((_,idx)=>idx);
         if (state.setup.shuffleA) shuffle(order);
@@ -330,19 +325,16 @@
       if (state.timerId) clearInterval(state.timerId);
       tick(); state.timerId = setInterval(tick, 1000);
 
-      // Switch UI
       els.setupSection.classList.add('hidden');
       els.examSection.classList.remove('hidden');
       els.examHeader.classList.remove('hidden');
       state.phase = 'exam';
 
-      // Render
       renderAll();
       Swal.fire({icon:'success', title:'Bắt đầu làm bài', timer:900, showConfirmButton:false});
     }
 
     function returnToSetup(){
-      // Stop timer
       if (state.timerId) clearInterval(state.timerId);
       state.timerId = null;
       state.phase = 'setup';
@@ -350,22 +342,17 @@
       state.answers.clear();
       state.currentIndex = 0;
       state.submitted = false;
-      // Toggle UI
       els.examSection.classList.add('hidden');
       els.examHeader.classList.add('hidden');
       els.setupSection.classList.remove('hidden');
-      // Prefill bank count and clamp
       updateBankCount(); clampLimitToBank();
       window.scrollTo({top:0, behavior:'smooth'});
     }
 
     // ====== RENDER ======
     function renderAll(){
-      // Header
       els.title.textContent = (state.setup.subject==='all'?'Tất cả môn':state.setup.subject) + ' • ' + state.items.length + ' câu';
-      // Navigator
       updateNavigator();
-      // Questions
       els.questionContainer.innerHTML = '';
       const frag = document.createDocumentFragment();
       state.items.forEach((item, displayIdx)=>{
@@ -375,12 +362,24 @@
 
         const h = document.createElement('div');
         h.className = 'flex items-start justify-between gap-2';
-        const starred = state.hard.has(item.id) ? 'text-yellow-500' : 'text-slate-300';
-        h.innerHTML = '<div class="font-semibold text-slate-800">Câu ' + (displayIdx+1) + '</div>'
-                    + '<div class="flex items-center gap-3">'
-                    +   '<button class="toggle-hard text-lg ' + starred + '" title="Đánh dấu câu khó" aria-label="Đánh dấu câu khó">★</button>'
-                    +   '<div class="text-[11px] text-slate-500">#' + String(item.qnum) + '</div>'
-                    + '</div>';
+
+        const left = document.createElement('div');
+        left.className = 'font-semibold text-slate-800';
+        left.textContent = 'Câu ' + (displayIdx+1);
+
+        const right = document.createElement('div');
+        right.className = 'flex items-center gap-3';
+        const star = document.createElement('button');
+        star.className = 'toggle-hard text-lg ' + (state.hard.has(item.id) ? 'text-yellow-500' : 'text-slate-300');
+        star.title = 'Đánh dấu câu khó';
+        star.setAttribute('aria-label','Đánh dấu câu khó');
+        star.textContent = '★';
+        const meta = document.createElement('div');
+        meta.className = 'text-[11px] text-slate-500';
+        meta.textContent = '#' + String(item.qnum);
+        right.appendChild(star); right.appendChild(meta);
+
+        h.appendChild(left); h.appendChild(right);
         card.appendChild(h);
 
         const qt = document.createElement('div');
@@ -395,12 +394,24 @@
           const selected = state.answers.get(item.id) === optIdx;
           const div = document.createElement('div');
           div.className = 'option';
-          div.innerHTML = ''
-           + '<input type="radio" id="' + optId + '" name="q-' + displayIdx + '" value="' + optIdx + '" ' + (selected ? 'checked' : '') + (state.submitted?' disabled':'') + '>'
-           + '<label for="' + optId + '" class="hover:bg-slate-50 text-sm">' + escapeHtml(optText) + '</label>';
-          const input = div.querySelector('input');
+
+          const input = document.createElement('input');
+          input.type = 'radio';
+          input.id = optId;
+          input.name = 'q-' + displayIdx;
+          input.value = String(optIdx);
+          if (selected) input.checked = true;
+          if (state.submitted) input.disabled = true;
+
+          const label = document.createElement('label');
+          label.setAttribute('for', optId);
+          label.className = 'hover:bg-slate-50 text-sm';
+          label.textContent = optText;
+
           input.addEventListener('change', ()=>{ state.answers.set(item.id, optIdx); updateProgress(); updateNavigator(); });
-          if (state.submitted){ div.classList.add('locked'); }
+          if (state.submitted) div.classList.add('locked');
+
+          div.appendChild(input); div.appendChild(label);
           optWrap.appendChild(div);
         });
         card.appendChild(optWrap);
@@ -410,12 +421,11 @@
         res.className = 'mt-2 hidden text-sm';
         card.appendChild(res);
 
-        // star toggle
-        h.querySelector('.toggle-hard').addEventListener('click', (e)=>{
+        star.addEventListener('click', (e)=>{
           e.preventDefault();
           if (state.hard.has(item.id)) state.hard.delete(item.id); else state.hard.add(item.id);
           saveHardBank();
-          renderAll(); // refresh stars + navigator
+          renderAll();
         });
 
         frag.appendChild(card);
@@ -452,7 +462,7 @@
     }
 
     function jumpTo(idx, smooth=true){
-      idx = clamp(idx, 0, state.items.length-1);
+      idx = Math.max(0, Math.min(idx, state.items.length-1));
       state.currentIndex = idx;
       const el = document.getElementById('q-' + idx);
       if (!el) return;
@@ -480,7 +490,7 @@
       if (missing.length){
         const preview = missing.slice(0, 30).map(i=>i+1).join(', ') + (missing.length>30?'...':'');
         Swal.fire({icon:'warning', title:'Còn ' + missing.length + ' câu chưa làm', html:'Bạn cần trả lời hết trước khi nộp.<br/><small>Câu: ' + preview + '</small>', confirmButtonText:'Đến câu chưa làm'})
-          .then(()=> jumpTo(missing[0]));
+          .then(({isConfirmed})=> jumpTo(missing[0]));
         return;
       }
       gradeAndShow();
@@ -496,20 +506,23 @@
         const chosen = state.answers.get(item.id);
         const isCorrect = chosen === item.correctIndex;
         if (isCorrect) correct++;
-        // paint
+
         const card = document.getElementById('q-' + displayIdx);
         const res = document.getElementById('res-' + displayIdx);
         if (card){
           card.classList.add(isCorrect ? 'bg-emerald-50' : 'bg-rose-50');
-          // lock radios
           card.querySelectorAll('input[type="radio"]').forEach(i=>{ i.disabled = true; });
           card.querySelectorAll('.option').forEach(d=> d.classList.add('locked'));
         }
         if (res){
           res.classList.remove('hidden');
-          res.innerHTML = isCorrect
-            ? '<div class="text-emerald-700">Chính xác ✓</div>'
-            : '<div class="text-rose-700">Sai. Đáp án đúng: <b>'+escapeHtml(item.options[item.correctIndex])+'</b></div>';
+          if (isCorrect){
+            res.textContent = 'Chính xác ✓';
+            res.classList.add('text-emerald-700');
+          } else {
+            res.textContent = 'Sai. Đáp án đúng: ' + item.options[item.correctIndex];
+            res.classList.add('text-rose-700');
+          }
         }
       });
       updateNavigator();
