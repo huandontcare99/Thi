@@ -5,65 +5,57 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>Quiz Pro – Ôn luyện & Thi thử</title>
 
-  <!-- Tailwind CDN (mobile-first) -->
+  <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
-    // Tinh chỉnh nhỏ cho Tailwind (màu, radius)
     tailwind.config = {
       theme: {
         extend: {
           borderRadius: { 'xl2': '1rem' },
-          boxShadow: { 'soft': '0 10px 25px -10px rgba(0,0,0,0.15)' }
+          boxShadow: { 'soft': '0 10px 25px -10px rgba(0,0,0,.15)' },
+          colors: { brand: { DEFAULT:'#2563eb' } }
         }
       }
     }
   </script>
 
-  <!-- Style cực mỏng để tối ưu cảm ứng -->
   <style>
-    :root { color-scheme: light; }
-    /* Nút chọn đáp án: tăng vùng chạm, tránh miss click */
-    .opt-item input[type="radio"]{ display:none; }
-    .opt-item input[type="radio"] + label{
-      display:block; padding:12px 14px; border-radius:14px; border:1px solid rgb(226 232 240);
+    :root{ color-scheme: light; }
+    /* Radio đẹp & vùng chạm lớn */
+    .opt input[type="radio"]{ display:none; }
+    .opt input[type="radio"]+label{
+      display:block; border:1px solid rgb(226 232 240); border-radius:14px;
+      padding:12px 14px; background:#fff;
     }
-    .opt-item input[type="radio"]:checked + label{
+    .opt input[type="radio"]:checked+label{
       border-color: rgb(59 130 246);
-      outline: 3px solid rgba(59,130,246,.15);
-      background: white;
+      outline: 3px solid rgba(59,130,246,.14);
     }
-    /* Trạng thái đúng/sai trong luyện tập/thi */
-    .is-correct { border-color: rgb(34 197 94) !important; background: #f0fdf4; }
-    .is-wrong   { border-color: rgb(239 68 68) !important; background: #fef2f2; }
-    /* Fix iOS input zoom */
-    @media (max-width: 380px){
-      select, input, button { font-size: 16px; }
-    }
+    .is-correct{ border-color: rgb(34 197 94)!important; background:#f0fdf4!important; }
+    .is-wrong{ border-color: rgb(239 68 68)!important; background:#fef2f2!important; }
+    /* Fix iOS auto-zoom */
+    @media (max-width:380px){ select,input,button{ font-size:16px; } }
   </style>
-</head>
 
+  <!-- (Tùy chọn) Tự load data.js nếu có cùng thư mục -->
+  <script src="data.js" defer></script>
+</head>
 <body class="bg-slate-50 text-slate-800 min-h-screen">
-  <!-- HEADER: không che nội dung, sticky nhẹ -->
+  <!-- Header siêu gọn, không che màn hình -->
   <header class="sticky top-0 z-40 backdrop-blur bg-white/85 border-b border-slate-200">
     <div class="max-w-4xl mx-auto px-3 py-2">
       <div class="flex items-center gap-2">
-        <div class="flex items-center gap-2 min-w-0">
-          <div class="w-9 h-9 rounded-xl2 bg-blue-600 text-white flex items-center justify-center font-bold shadow-soft">Q</div>
-          <div class="truncate">
-            <h1 class="text-base font-semibold leading-tight">Quiz Pro</h1>
-            <p class="text-xs text-slate-500 leading-tight">Ôn luyện & Thi thử (Mobile-first)</p>
-          </div>
+        <div class="w-9 h-9 rounded-xl2 bg-brand text-white flex items-center justify-center font-bold shadow-soft">Q</div>
+        <div class="min-w-0">
+          <h1 class="text-base font-semibold leading-tight">Quiz Pro</h1>
+          <p class="text-xs text-slate-500 leading-tight">Ôn luyện & Thi thử (Mobile-first)</p>
         </div>
-
-        <!-- Toggle mở/đóng bảng điều khiển trên mobile -->
-        <button id="btnToggleToolbar"
-          class="ml-auto inline-flex items-center gap-2 rounded-xl2 px-3 py-2 border border-slate-200 bg-white hover:bg-slate-50 active:scale-[.99]">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
-          <span class="text-sm">Bảng điều khiển</span>
+        <button id="btnToolbar" class="ml-auto px-3 py-2 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50">
+          Bảng điều khiển
         </button>
       </div>
 
-      <!-- TOOLBAR: xếp dọc trên mobile, 2 hàng trên tablet, không chồng lấn -->
+      <!-- Toolbar: xếp dọc trên mobile, 2-3 cột khi rộng hơn -->
       <div id="toolbar" class="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
         <div class="flex gap-2">
           <label class="text-sm text-slate-600 pt-2 min-w-[70px]">Môn</label>
@@ -71,7 +63,6 @@
             <option>Đang nạp dữ liệu…</option>
           </select>
         </div>
-
         <div class="flex gap-2">
           <label class="text-sm text-slate-600 pt-2 min-w-[70px]">Chế độ</label>
           <select id="modeSelect" class="flex-1 rounded-xl2 border border-slate-200 bg-white px-3 py-2">
@@ -80,7 +71,6 @@
             <option value="exam">Thi thử (chấm cuối, có giờ)</option>
           </select>
         </div>
-
         <div class="flex gap-2">
           <label class="text-sm text-slate-600 pt-2 min-w-[70px]">Số câu</label>
           <select id="countSelect" class="flex-1 rounded-xl2 border border-slate-200 bg-white px-3 py-2">
@@ -90,7 +80,6 @@
             <option value="all">Tất cả</option>
           </select>
         </div>
-
         <div class="flex gap-2">
           <label class="text-sm text-slate-600 pt-2 min-w-[70px]">Sắp xếp</label>
           <select id="orderSelect" class="flex-1 rounded-xl2 border border-slate-200 bg-white px-3 py-2">
@@ -98,7 +87,6 @@
             <option value="shuffle">Ngẫu nhiên</option>
           </select>
         </div>
-
         <div class="flex gap-2">
           <label class="text-sm text-slate-600 pt-2 min-w-[70px]">Bộ lọc</label>
           <select id="filterSelect" class="flex-1 rounded-xl2 border border-slate-200 bg-white px-3 py-2">
@@ -107,41 +95,43 @@
             <option value="wrong">Sai gần đây</option>
           </select>
         </div>
-
         <div class="flex gap-2">
           <label class="text-sm text-slate-600 pt-2 min-w-[70px]">Tìm</label>
           <input id="searchInput" placeholder="Từ khóa câu hỏi…" class="flex-1 rounded-xl2 border border-slate-200 bg-white px-3 py-2" />
         </div>
 
         <div class="md:col-span-2 lg:col-span-3 flex gap-2 mt-1">
-          <button id="btnStart" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl2 px-4 py-3 font-semibold shadow-soft active:scale-[.99]">
+          <button id="btnStart" class="flex-1 bg-brand hover:bg-blue-700 text-white rounded-xl2 px-4 py-3 font-semibold shadow-soft">
             Bắt đầu
           </button>
-          <button id="btnReset" class="px-4 py-3 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50 active:scale-[.99]">
+          <button id="btnReset" class="px-4 py-3 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50">
             Xóa kết quả
           </button>
+          <button id="btnLoadFile" class="px-4 py-3 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50">
+            📁 Nạp dữ liệu
+          </button>
+          <input id="fileInput" type="file" accept=".js,.txt,.json" class="hidden" />
         </div>
       </div>
     </div>
   </header>
 
   <main class="max-w-4xl mx-auto px-3 pb-24">
-    <!-- Thanh tiến trình -->
+    <!-- Progress -->
     <div class="mt-3">
       <div class="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
-        <div id="progressBar" class="h-2 bg-blue-600 transition-[width] duration-300" style="width:0%"></div>
+        <div id="progressBar" class="h-2 bg-brand transition-[width] duration-300" style="width:0%"></div>
       </div>
       <div class="mt-1 text-xs text-slate-500" id="progressText">0 / 0</div>
     </div>
 
     <!-- Khu câu hỏi -->
     <section id="quizArea" class="mt-3 space-y-3">
-      <!-- Thông điệp -->
-      <div id="emptyMsg" class="hidden bg-amber-50 border border-amber-200 text-amber-800 rounded-xl2 p-3 text-sm">
-        Chưa có bài. Hãy chọn môn, chế độ và nhấn <b>Bắt đầu</b>.
+      <div id="emptyMsg" class="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl2 p-3 text-sm">
+        Chưa có bài. Đặt <b>index.html</b> cạnh file <b>data.js</b> hoặc <b>data.txt</b>, rồi nhấn <b>Bắt đầu</b>.
+        Nếu vẫn chưa đọc được, bấm <b>📁 Nạp dữ liệu</b> để chọn file thủ công.
       </div>
 
-      <!-- Thẻ câu hỏi -->
       <article id="card" class="hidden rounded-2xl bg-white border border-slate-200 shadow-soft p-4">
         <div class="flex items-start gap-2">
           <div class="text-xs px-2 py-1 rounded bg-slate-100 text-slate-600" id="badgeSubject">Môn</div>
@@ -150,7 +140,6 @@
         </div>
 
         <h2 id="qTitle" class="mt-2 text-base font-semibold"></h2>
-
         <div id="optList" class="mt-2 space-y-2"></div>
 
         <div id="explainBox" class="mt-3 hidden">
@@ -164,26 +153,21 @@
           <button id="btnCheck" class="px-4 py-2 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50">Chấm câu này</button>
           <button id="btnReveal" class="px-4 py-2 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50">Hiện đáp án</button>
           <button id="btnBookmark" class="ml-auto px-4 py-2 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50">🔖 Đánh dấu</button>
-          <button id="btnSubmit" class="px-4 py-2 rounded-xl2 bg-blue-600 text-white hover:bg-blue-700">Nộp bài</button>
+          <button id="btnSubmit" class="px-4 py-2 rounded-xl2 bg-brand text-white hover:bg-blue-700">Nộp bài</button>
         </div>
       </article>
 
-      <!-- Kết quả -->
       <article id="resultCard" class="hidden rounded-2xl bg-white border border-slate-200 shadow-soft p-4">
         <h3 class="text-lg font-bold mb-1">Kết quả</h3>
         <p id="scoreText" class="text-sm text-slate-700"></p>
         <div class="mt-3 flex flex-wrap gap-2">
-          <button id="btnReviewWrong" class="px-4 py-2 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50">
-            Luyện lại câu sai
-          </button>
-          <button id="btnRestart" class="px-4 py-2 rounded-xl2 bg-blue-600 text-white hover:bg-blue-700">
-            Làm lại
-          </button>
+          <button id="btnReviewWrong" class="px-4 py-2 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50">Luyện lại câu sai</button>
+          <button id="btnRestart" class="px-4 py-2 rounded-xl2 bg-brand text-white hover:bg-blue-700">Làm lại</button>
         </div>
       </article>
     </section>
 
-    <!-- Danh sách câu (mở bằng nút ở đáy) -->
+    <!-- Danh sách câu (bottom sheet) -->
     <div id="sheet" class="fixed inset-x-0 bottom-0 z-30 hidden">
       <div class="mx-auto max-w-4xl rounded-t-2xl bg-white shadow-2xl border border-slate-200">
         <div class="p-3 flex items-center gap-2 border-b border-slate-200">
@@ -193,318 +177,341 @@
         <div id="qGrid" class="p-3 grid grid-cols-10 gap-1 max-h-[40vh] overflow-auto"></div>
       </div>
     </div>
-
   </main>
 
   <!-- FAB mở danh sách câu – không che nội dung -->
-  <button id="fab" class="fixed bottom-4 right-4 z-20 rounded-full bg-blue-600 text-white w-12 h-12 shadow-soft hover:bg-blue-700 active:scale-[.98]" title="Danh sách câu">
-    #
-  </button>
+  <button id="fab" class="fixed bottom-4 right-4 z-20 rounded-full bg-brand text-white w-12 h-12 shadow-soft hover:bg-blue-700" title="Danh sách câu">#</button>
 
-  <!-- Nạp data.js trước app (để lấy window.quizData / RAW_* / JSON) -->
-  <script src="data.js"></script>
-
-  <!-- Ứng dụng -->
+  <!-- App -->
   <script>
   (function(){
     "use strict";
 
-    // ====== Utils ======
-    const $ = sel => document.querySelector(sel);
-    const $$ = sel => document.querySelectorAll(sel);
+    // ===== Helpers =====
+    const $ = s => document.querySelector(s);
+    const $$ = s => document.querySelectorAll(s);
     const byId = id => document.getElementById(id);
 
     const normalize = (s) => (s ?? "")
       .toString()
-      .replace(/\s+/g, ' ')
+      .replace(/\s+/g,' ')
       .trim()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g,'') // bỏ dấu
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
       .replace(/[“”"']/g,'')
       .toLowerCase();
 
-    const choiceLetters = ['A','B','C','D','E','F']; // phòng xa
-
-    // Local storage keys
+    const choiceLetters = ['A','B','C','D','E','F'];
     const LS_BOOK = 'quizpro_bookmarks';
     const LS_WRONG = 'quizpro_wrong';
+    const loadLS = (k, def) => { try{return JSON.parse(localStorage.getItem(k)) ?? def;}catch{return def;} };
+    const saveLS = (k,v) => localStorage.setItem(k, JSON.stringify(v));
 
-    const loadLS = (k, def) => {
-      try { return JSON.parse(localStorage.getItem(k)) ?? def; } catch{ return def; }
-    }
-    const saveLS = (k, v) => localStorage.setItem(k, JSON.stringify(v));
-
-    // ====== Parse legacy RAW text chắc tay ======
+    // ===== Robust legacy RAW parser =====
     function parseLegacyText(raw){
-      // Tách từng block theo “Câu x:” cho bền
-      const blocks = [];
-      const re = /(^|\n)Câu\s*\d+\s*:[\s\S]*?(?=(?:\n[-=]{3,}\s*\n)|(?:\n\s*Câu\s*\d+\s*:)|\s*$)/gi;
-      let m; while((m = re.exec(raw))){ blocks.push(m[0]); }
+      if(!raw) return [];
+      // Cắt theo "Câu n:" hoặc vạch kẻ
+      const blocks=[]; const re=/(^|\n)Câu\s*\d+\s*:[\s\S]*?(?=(?:\n[-=]{3,}\s*\n)|(?:\n\s*Câu\s*\d+\s*:)|\s*$)/gi;
+      let m; while((m=re.exec(raw))){ blocks.push(m[0]); }
 
-      const questions = [];
+      const qs=[];
       for(const b of blocks){
-        // Lấy phần thân
-        const qMatch = /Câu\s*\d+\s*:\s*([\s\S]*?)\n\s*Đáp án đúng:\s*([^\n]+)\s*\n/i.exec(b);
-        if(!qMatch) continue;
-        const qText = qMatch[1].trim();
-        const correctText = qMatch[2].trim();
+        const qm=/Câu\s*\d+\s*:\s*([\s\S]*?)\n\s*Đáp án đúng:\s*([^\n]+)\s*\n/i.exec(b);
+        if(!qm) continue;
+        const qText=qm[1].trim();
+        const correctText=qm[2].trim();
 
-        // Lấy phần đáp án
-        let optPart = /Tất cả đáp án:\s*([\s\S]*)/i.exec(b)?.[1] ?? '';
-        // Harvest các dòng A./B./C./D. (kể cả có ✓ lẫn khoảng trắng lung tung)
-        const opts = [];
-        const lines = optPart.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+        let optPart=/Tất cả đáp án:\s*([\s\S]*)/i.exec(b)?.[1] ?? '';
+        const lines=optPart.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+
+        const opts=[];
         for(const ln of lines){
-          const m2 = /^([A-Z])\.\s*(.*)$/.exec(ln);
+          const m2=/^([A-ZĐ])\.\s*(.*)$/.exec(ln); // kể cả chữ Đ
           if(!m2) continue;
-          const letter = m2[1].toUpperCase();
-          let text = m2[2].trim();
-          const hasCheck = /✓/.test(text);
-          text = text.replace(/^✓\s*/,'').replace(/\s*✓\s*$/,'').trim();
-          opts.push({ letter, text, hasCheck });
+          const letter=m2[1].toUpperCase();
+          let text=m2[2].trim();
+          const hasCheck=/✓/.test(text);
+          text=text.replace(/^✓\s*/,'').replace(/\s*✓\s*$/,'').trim();
+          opts.push({letter,text,hasCheck});
         }
+        if(!opts.length) continue;
 
-        if(opts.length === 0) continue;
-
-        // Xác định đáp án đúng:
-        let answerIndex = opts.findIndex(o=>o.hasCheck);
-        if(answerIndex < 0){
-          // So khớp theo “Đáp án đúng”
-          const normCorrect = normalize(correctText);
-          answerIndex = opts.findIndex(o => normalize(o.text) === normCorrect);
-          if(answerIndex < 0){
-            // Thử contains để chịu sai khác nhẹ
-            answerIndex = opts.findIndex(o => normalize(o.text).includes(normCorrect) || normCorrect.includes(normalize(o.text)));
+        // Tìm đáp án
+        let answerIndex=opts.findIndex(o=>o.hasCheck);
+        if(answerIndex<0){
+          const normCorrect=normalize(correctText);
+          answerIndex=opts.findIndex(o=>normalize(o.text)===normCorrect);
+          if(answerIndex<0){
+            answerIndex=opts.findIndex(o=>normalize(o.text).includes(normCorrect)||normCorrect.includes(normalize(o.text)));
           }
         }
-        if(answerIndex < 0) answerIndex = 0; // fallback an toàn
+        if(answerIndex<0) answerIndex=0;
 
-        questions.push({
-          text: qText,
-          options: opts.map(o=>o.text),
-          answer: answerIndex,
-          explain: '' // dữ liệu legacy không kèm giải thích chi tiết
-        });
+        qs.push({ text:qText, options:opts.map(o=>o.text), answer:answerIndex, explain:'' });
       }
-      return questions;
+      return qs;
     }
 
-    // ====== Nạp subjects từ data.js (ưu tiên JSON, sau đó RAW) ======
-    function loadSubjects(){
-      const subjects = [];
+    // Lấy tên môn từ header nội dung RAW
+    function inferSubjectName(raw, fallback){
+      const m=/MÔN\s*[:：]\s*([^\n]+)\n/i.exec(raw||'');
+      return (m?m[1].trim():fallback||'Môn');
+    }
 
-      // CÁCH 1: JSON (nếu có)
-      if(window.quizDataJSON?.subjects?.length){
-        for(const s of window.quizDataJSON.subjects){
-          subjects.push({
-            id: s.id || normalize(s.name).replace(/\W+/g,'-'),
-            name: s.name,
-            questions: s.questions.map(q=>({
-              text: q.text, options: q.options, answer: q.answer, explain: q.explain || ''
-            }))
-          });
-        }
-        return subjects;
+    // Parse data.js TEXT (không eval): bắt các RAW_* và SUBJECT_*
+    function parseDataJsText(jsText){
+      const subjects=[];
+      if(!jsText) return subjects;
+
+      // Map SUBJECT_* constants
+      const subjMap={};
+      const subjRe=/const\s+SUBJECT_([A-Za-z0-9_]+)\s*=\s*"([^"]*)"/g;
+      let sm; while((sm=subjRe.exec(jsText))){
+        subjMap[sm[1]] = sm[2];
       }
 
-      // CÁCH 2a: API getAll() của bạn
-      if(window.quizData?.getAll){
-        try{
-          const arr = window.quizData.getAll();
-          for(const it of arr){
-            subjects.push({
-              id: normalize(it.subject).replace(/\W+/g,'-'),
-              name: it.subject,
-              questions: parseLegacyText(String(it.text || ''))
-            });
-          }
-          return subjects;
-        }catch(e){
-          console.warn('Lỗi đọc quizData.getAll()', e);
-        }
+      // RAW blocks
+      const rawRe=/const\s+(RAW_([A-Za-z0-9_]+))\s*=\s*String\.raw`([\s\S]*?)`;/g;
+      let rm; while((rm=rawRe.exec(jsText))){
+        const key = rm[2];               // ví dụ PH, QU
+        const raw = rm[3];               // nội dung RAW
+        const name = subjMap[key] || inferSubjectName(raw, key);
+        subjects.push({ name, questions: parseLegacyText(raw) });
       }
 
-      // CÁCH 2b: Quét biến RAW_* nếu có
-      const globalKeys = Object.keys(window);
-      const rawKeys = globalKeys.filter(k => /^RAW_/.test(k));
-      for(const k of rawKeys){
-        const name = k.replace(/^RAW_/,'');
-        subjects.push({
-          id: normalize(name).replace(/\W+/g,'-'),
-          name,
-          questions: parseLegacyText(String(window[k]||''))
-        });
+      // Nếu không có RAW_* mà có window.quizData.getAll() → cố gắng đọc text giữa backtick (2 môn)
+      if(subjects.length===0){
+        const allRaw=[...jsText.matchAll(/String\.raw`([\s\S]*?)`/g)].map(x=>x[1]);
+        for(const raw of allRaw){
+          const name=inferSubjectName(raw, 'Môn');
+          const qs=parseLegacyText(raw);
+          if(qs.length) subjects.push({ name, questions: qs });
+        }
       }
       return subjects;
     }
 
+    // Parse JSON text
+    function parseJsonText(txt){
+      try{
+        const data=JSON.parse(txt);
+        if(Array.isArray(data?.subjects)){
+          return data.subjects.map(s=>({
+            name: s.name || 'Môn',
+            questions: s.questions?.map(q=>({ text:q.text, options:q.options, answer:q.answer, explain:q.explain||'' }))||[]
+          }));
+        }
+      }catch{}
+      return [];
+    }
+
+    // Load subjects từ các nguồn: window, rồi fetch data.txt nếu có
+    async function loadSubjectsAuto(){
+      // 1) window.quizDataJSON
+      if(window.quizDataJSON?.subjects?.length){
+        return window.quizDataJSON.subjects.map(s=>({
+          name:s.name, questions:s.questions.map(q=>({text:q.text,options:q.options,answer:q.answer,explain:q.explain||''}))
+        }));
+      }
+      // 2) window.quizData.getAll() (data.js truyền thống)
+      if(window.quizData?.getAll){
+        try{
+          const arr=window.quizData.getAll();
+          return arr.map(it=>({ name: it.subject, questions: parseLegacyText(String(it.text||'')) }));
+        }catch(e){ console.warn('Lỗi quizData.getAll()', e); }
+      }
+      // 3) Biến RAW_* global
+      const rawKeys = Object.keys(window).filter(k=>/^RAW_/.test(k));
+      if(rawKeys.length){
+        const subjects=[];
+        for(const k of rawKeys){
+          const raw=String(window[k]||'');
+          const suffix=k.replace(/^RAW_/,'');
+          const subjName=(window['SUBJECT_'+suffix]||inferSubjectName(raw,suffix));
+          subjects.push({ name:subjName, questions:parseLegacyText(raw) });
+        }
+        if(subjects.length) return subjects;
+      }
+      // 4) fetch data.txt (nếu đặt cạnh index)
+      try{
+        const res = await fetch('data.txt', {cache:'no-store'});
+        if(res.ok){
+          const txt = await res.text();
+          // Thử RAW trước, nếu không thì JSON
+          const rawQs = parseLegacyText(txt);
+          if(rawQs.length){
+            return [{ name: inferSubjectName(txt,'Môn'), questions: rawQs }];
+          }
+          const jsonSubs = parseJsonText(txt);
+          if(jsonSubs.length) return jsonSubs;
+        }
+      }catch{}
+      return []; // để dùng nút "Nạp dữ liệu"
+    }
+
     // ====== State ======
-    const state = {
-      subjects: [],
-      subjectIdx: 0,
-      mode: 'study', // study | practice | exam
-      order: 'sequence',
-      filter: 'all',
-      search: '',
-      pool: [],           // danh sách câu đã lọc/sắp xếp
-      cur: 0,
-      answers: {},        // idx -> chọn của user
-      checked: {},        // idx -> true/false đã chấm
-      bookmarks: loadLS(LS_BOOK, {}),
-      wrongBank: loadLS(LS_WRONG, []), // lưu id câu sai gần đây (tối đa 200)
-      timer: null,
-      seconds: 0,
+    const state={
+      subjects:[],
+      subjectIdx:0,
+      mode:'study',
+      order:'sequence',
+      filter:'all',
+      search:'',
+      pool:[],
+      cur:0,
+      answers:{},
+      checked:{},
+      bookmarks: loadLS(LS_BOOK,{}),
+      wrongBank: loadLS(LS_WRONG,[]),
+      timer:null,
+      seconds:0
     };
 
-    // ====== UI refs ======
+    // ====== Refs ======
     const subjectSelect = byId('subjectSelect');
-    const modeSelect    = byId('modeSelect');
-    const countSelect   = byId('countSelect');
-    const orderSelect   = byId('orderSelect');
-    const filterSelect  = byId('filterSelect');
-    const searchInput   = byId('searchInput');
-    const btnStart      = byId('btnStart');
-    const btnReset      = byId('btnReset');
-    const btnToggleToolbar = byId('btnToggleToolbar');
+    const modeSelect = byId('modeSelect');
+    const countSelect = byId('countSelect');
+    const orderSelect = byId('orderSelect');
+    const filterSelect = byId('filterSelect');
+    const searchInput = byId('searchInput');
+    const btnStart = byId('btnStart');
+    const btnReset = byId('btnReset');
+    const btnToolbar = byId('btnToolbar');
+    const btnLoadFile = byId('btnLoadFile');
+    const fileInput = byId('fileInput');
+    const toolbar = byId('toolbar');
 
-    const emptyMsg   = byId('emptyMsg');
-    const card       = byId('card');
+    const emptyMsg = byId('emptyMsg');
+    const card = byId('card');
     const badgeSubject = byId('badgeSubject');
-    const badgeMode  = byId('badgeMode');
-    const timerBox   = byId('timerBox');
-    const timerLabel = byId('timer');
+    const badgeMode = byId('badgeMode');
+    const timerBox = byId('timerBox'); const timerLbl = byId('timer');
 
-    const qTitle     = byId('qTitle');
-    const optList    = byId('optList');
-    const explainBox = byId('explainBox');
-    const explain    = byId('explain');
+    const qTitle = byId('qTitle');
+    const optList = byId('optList');
+    const explainBox = byId('explainBox'); const explain = byId('explain');
 
-    const btnPrev    = byId('btnPrev');
-    const btnNext    = byId('btnNext');
-    const btnCheck   = byId('btnCheck');
-    const btnReveal  = byId('btnReveal');
-    const btnBookmark= byId('btnBookmark');
-    const btnSubmit  = byId('btnSubmit');
+    const btnPrev = byId('btnPrev');
+    const btnNext = byId('btnNext');
+    const btnCheck = byId('btnCheck');
+    const btnReveal = byId('btnReveal');
+    const btnBookmark = byId('btnBookmark');
+    const btnSubmit = byId('btnSubmit');
 
-    const progressBar  = byId('progressBar');
+    const progressBar = byId('progressBar');
     const progressText = byId('progressText');
 
     const resultCard = byId('resultCard');
-    const scoreText  = byId('scoreText');
+    const scoreText = byId('scoreText');
     const btnReviewWrong = byId('btnReviewWrong');
     const btnRestart = byId('btnRestart');
 
-    const sheet     = byId('sheet');
-    const qGrid     = byId('qGrid');
-    const sheetClose= byId('sheetClose');
-    const fab       = byId('fab');
-    const toolbar   = byId('toolbar');
+    const sheet = byId('sheet'); const sheetClose = byId('sheetClose'); const qGrid = byId('qGrid');
+    const fab = byId('fab');
 
     // ====== Init ======
-    function init(){
-      state.subjects = loadSubjects();
-      renderSubjectOptions();
+    document.addEventListener('DOMContentLoaded', async ()=>{
+      // Sự kiện UI
+      btnStart.onclick = start;
+      btnReset.onclick = resetAll;
+      btnToolbar.onclick = ()=> toolbar.classList.toggle('hidden');
+      btnLoadFile.onclick = ()=> fileInput.click();
+      fileInput.onchange = handleFileInput;
 
-      // Sự kiện
-      btnStart.onclick  = start;
-      btnReset.onclick  = resetAll;
-      btnPrev.onclick   = prevQ;
-      btnNext.onclick   = nextQ;
-      btnCheck.onclick  = checkThis;
-      btnReveal.onclick = revealThis;
-      btnSubmit.onclick = submitAll;
-      btnBookmark.onclick = toggleBookmark;
+      subjectSelect.onchange = ()=> state.subjectIdx = subjectSelect.selectedIndex;
+      modeSelect.onchange = ()=> state.mode = modeSelect.value;
+      orderSelect.onchange = ()=> state.order = orderSelect.value;
+      filterSelect.onchange = ()=> state.filter = filterSelect.value;
+      searchInput.oninput = ()=> state.search = searchInput.value;
 
-      subjectSelect.onchange = ()=>{ state.subjectIdx = subjectSelect.selectedIndex; };
-      modeSelect.onchange    = ()=>{ state.mode = modeSelect.value; };
-      orderSelect.onchange   = ()=>{ state.order = orderSelect.value; };
-      filterSelect.onchange  = ()=>{ state.filter = filterSelect.value; };
-      countSelect.onchange   = ()=>{};
-      searchInput.oninput    = ()=>{ state.search = searchInput.value; };
+      btnPrev.onclick = prevQ; btnNext.onclick = nextQ;
+      btnCheck.onclick = checkThis; btnReveal.onclick = revealThis;
+      btnBookmark.onclick = toggleBookmark; btnSubmit.onclick = submitAll;
 
       fab.onclick = ()=> sheet.classList.toggle('hidden');
       sheetClose.onclick = ()=> sheet.classList.add('hidden');
-      btnToggleToolbar.onclick = ()=> toolbar.classList.toggle('hidden');
 
-      // Mặc định hiển thị thông điệp
-      showEmpty();
-    }
+      // Nạp subjects tự động
+      state.subjects = await loadSubjectsAuto();
+      renderSubjectOptions();
+    });
 
     function renderSubjectOptions(){
-      subjectSelect.innerHTML = '';
-      if(state.subjects.length === 0){
-        subjectSelect.innerHTML = '<option>Không tìm thấy dữ liệu</option>';
+      subjectSelect.innerHTML='';
+      if(!state.subjects.length){
+        subjectSelect.innerHTML='<option>Chưa đọc được dữ liệu</option>';
+        emptyMsg.classList.remove('hidden');
+        card.classList.add('hidden');
         return;
       }
-      state.subjects.forEach((s, i)=>{
-        const opt = document.createElement('option');
-        opt.value = i; opt.textContent = s.name || ('Môn ' + (i+1));
+      state.subjects.forEach((s,i)=>{
+        const opt=document.createElement('option');
+        opt.value=i; opt.textContent=s.name || ('Môn '+(i+1));
         subjectSelect.appendChild(opt);
       });
-      state.subjectIdx = 0;
+      state.subjectIdx=0;
+      emptyMsg.classList.remove('hidden');
     }
 
-    // ====== Lọc / Sắp xếp / Tạo pool ======
+    async function handleFileInput(e){
+      const file = e.target.files?.[0];
+      if(!file) return;
+      const txt = await file.text();
+
+      // Thử JSON → data.js → RAW thẳng
+      let subs = parseJsonText(txt);
+      if(!subs.length) subs = parseDataJsText(txt);
+      if(!subs.length){
+        const rawQs = parseLegacyText(txt);
+        if(rawQs.length) subs=[{ name: inferSubjectName(txt,'Môn'), questions: rawQs }];
+      }
+
+      if(!subs.length){
+        alert('Không trích xuất được dữ liệu từ file này. Vui lòng chọn đúng file data.');
+        return;
+      }
+      state.subjects = subs;
+      renderSubjectOptions();
+      alert('Nạp dữ liệu thành công!');
+    }
+
+    // ====== Pooling ======
     function makePool(){
       const subj = state.subjects[state.subjectIdx];
       if(!subj) return [];
+      let arr = subj.questions.map((q,idx)=>({...q,_id:idx}));
 
-      let arr = subj.questions.map((q, idx)=>({
-        ...q,
-        _id: idx // id nội bộ để nhớ sai/đúng/bookmark
-      }));
-
-      // Tìm kiếm theo từ khóa
       if(state.search.trim()){
-        const key = normalize(state.search);
-        arr = arr.filter(q => normalize(q.text).includes(key) ||
-                              q.options.some(o=> normalize(o).includes(key)));
+        const key=normalize(state.search);
+        arr=arr.filter(q => normalize(q.text).includes(key) || q.options.some(o=>normalize(o).includes(key)));
       }
-
-      // Bộ lọc
-      if(state.filter === 'bookmarked'){
-        arr = arr.filter(q => !!state.bookmarks[`${state.subjectIdx}:${q._id}`]);
-      } else if(state.filter === 'wrong'){
-        const set = new Set(state.wrongBank.map(x=>`${x.s}:${x.q}`));
-        arr = arr.filter(q => set.has(`${state.subjectIdx}:${q._id}`));
+      if(state.filter==='bookmarked'){
+        arr=arr.filter(q => !!state.bookmarks[`${state.subjectIdx}:${q._id}`]);
+      }else if(state.filter==='wrong'){
+        const set=new Set(state.wrongBank.map(x=>`${x.s}:${x.q}`));
+        arr=arr.filter(q=>set.has(`${state.subjectIdx}:${q._id}`));
       }
-
-      // Số câu
-      let need = countSelect.value === 'all' ? arr.length : Math.min(+countSelect.value || 20, arr.length);
-
-      // Sắp xếp
-      if(state.order === 'shuffle'){
-        arr = arr.sort(()=>Math.random()-.5);
-      }
-
+      const need = (countSelect.value==='all') ? arr.length : Math.min(+countSelect.value||20, arr.length);
+      if(state.order==='shuffle') arr.sort(()=>Math.random()-.5);
       return arr.slice(0, need);
     }
 
-    // ====== Start / Restart ======
+    // ====== Start ======
     function start(){
-      // Reset timer/answers
       clearTimer();
-      state.answers = {};
-      state.checked = {};
+      state.answers={}; state.checked={};
       resultCard.classList.add('hidden');
 
       state.pool = makePool();
       state.cur = 0;
 
-      if(state.pool.length === 0){
-        showEmpty();
-        return;
+      if(!state.pool.length){
+        emptyMsg.classList.remove('hidden'); card.classList.add('hidden');
+        updateProgress(); return;
       }
 
-      // Timer cho thi thử
-      if(state.mode === 'exam'){
-        startTimer(); // đơn giản: đếm lên từ 0 (có thể đổi thành đếm ngược)
-      }
-
+      if(state.mode==='exam'){ startTimer(); }
       badgeSubject.textContent = state.subjects[state.subjectIdx]?.name || 'Môn';
-      badgeMode.textContent = (
-        state.mode==='study' ? 'Học' :
-        state.mode==='practice' ? 'Luyện tập' : 'Thi thử'
-      );
+      badgeMode.textContent = (state.mode==='study'?'Học':state.mode==='practice'?'Luyện tập':'Thi thử');
 
       sheet.classList.add('hidden');
       renderQuestion();
@@ -512,113 +519,57 @@
       buildGrid();
     }
 
-    function resetAll(){
-      localStorage.removeItem(LS_BOOK);
-      localStorage.removeItem(LS_WRONG);
-      state.bookmarks = {};
-      state.wrongBank = [];
-      alert('Đã xóa đánh dấu & lịch sử sai gần đây.');
-    }
-
-    // ====== Render câu hỏi ======
+    // ====== Render ======
     function renderQuestion(){
       const q = state.pool[state.cur];
-      if(!q){
-        showEmpty(); return;
-      }
-      emptyMsg.classList.add('hidden');
-      card.classList.remove('hidden');
+      if(!q){ emptyMsg.classList.remove('hidden'); card.classList.add('hidden'); return; }
+      emptyMsg.classList.add('hidden'); card.classList.remove('hidden');
 
       qTitle.textContent = `Câu ${state.cur+1}: ${q.text}`;
-      optList.innerHTML = '';
-      explainBox.classList.add('hidden');
-      explain.textContent = q.explain || '';
+      optList.innerHTML=''; explainBox.classList.add('hidden'); explain.textContent=q.explain||'';
 
-      q.options.forEach((o, i)=>{
-        const id = `opt-${state.cur}-${i}`;
-        const wrap = document.createElement('div');
-        wrap.className = 'opt-item';
-
-        const input = document.createElement('input');
-        input.type = 'radio';
-        input.name = `q-${state.cur}`;
-        input.id = id;
-        input.value = i;
-        input.checked = (state.answers[state.cur] === i);
-        input.onchange = ()=> {
-          state.answers[state.cur] = i;
-          if(state.mode === 'practice'){
-            // chấm ngay
-            markOptions();
-          }
+      q.options.forEach((o,i)=>{
+        const id=`opt-${state.cur}-${i}`;
+        const wrap=document.createElement('div'); wrap.className='opt';
+        const input=document.createElement('input'); input.type='radio'; input.name=`q-${state.cur}`; input.id=id; input.value=i;
+        input.checked = (state.answers[state.cur]===i);
+        input.onchange = ()=>{
+          state.answers[state.cur]=i;
+          if(state.mode==='practice') markOptions();
         };
-
-        const lab = document.createElement('label');
-        lab.setAttribute('for', id);
-        lab.className = 'hover:bg-slate-50';
-        lab.innerHTML = `<div class="flex gap-2">
-          <div class="text-slate-500">${choiceLetters[i] || ''}.</div>
-          <div class="flex-1">${o}</div>
-        </div>`;
-
-        wrap.appendChild(input);
-        wrap.appendChild(lab);
-        optList.appendChild(wrap);
+        const lab=document.createElement('label'); lab.setAttribute('for',id);
+        lab.innerHTML=`<div class="flex gap-2"><div class="text-slate-500">${choiceLetters[i]||''}.</div><div class="flex-1">${o}</div></div>`;
+        wrap.appendChild(input); wrap.appendChild(lab); optList.appendChild(wrap);
       });
 
-      // Nút hiển thị
       btnCheck.classList.toggle('hidden', state.mode!=='practice');
       btnReveal.classList.toggle('hidden', state.mode!=='study');
       btnSubmit.classList.toggle('hidden', state.mode!=='exam');
 
-      // Bookmark state
-      const key = `${state.subjectIdx}:${q._id}`;
+      const key=`${state.subjectIdx}:${q._id}`;
       btnBookmark.textContent = state.bookmarks[key] ? '🔖 Đã đánh dấu' : '🔖 Đánh dấu';
-
-      // Timer hiển thị
       timerBox.hidden = (state.mode!=='exam');
-
-      // Nếu study thì highlight đáp án đúng nhẹ khi bấm "Hiện đáp án"
-      // (mặc định không highlight để bạn tự suy nghĩ trước)
       clearMarks();
     }
 
-    function clearMarks(){
-      $$('#optList label').forEach(el=>{
-        el.classList.remove('is-correct','is-wrong');
-      });
-    }
-
+    function clearMarks(){ $$('#optList label').forEach(el=>el.classList.remove('is-correct','is-wrong')); }
     function markOptions(){
-      // đánh dấu đúng/sai cho Luyện tập hoặc sau khi Check
-      const q = state.pool[state.cur];
-      const pick = state.answers[state.cur];
+      const q=state.pool[state.cur]; const pick=state.answers[state.cur];
       clearMarks();
-      const labels = $$('#optList label');
+      const labels=$$('#optList label');
       if(labels[q.answer]) labels[q.answer].classList.add('is-correct');
-      if(pick != null && pick !== q.answer && labels[pick]) labels[pick].classList.add('is-wrong');
-      state.checked[state.cur] = true;
+      if(pick!=null && pick!==q.answer && labels[pick]) labels[pick].classList.add('is-wrong');
+      state.checked[state.cur]=true;
     }
-
     function revealThis(){
-      // Học: highlight đáp án + bật giải thích nếu có
-      const q = state.pool[state.cur];
-      const labels = $$('#optList label');
-      clearMarks();
-      if(labels[q.answer]) labels[q.answer].classList.add('is-correct');
+      const q=state.pool[state.cur]; const labels=$$('#optList label');
+      clearMarks(); if(labels[q.answer]) labels[q.answer].classList.add('is-correct');
       if(q.explain) explainBox.classList.remove('hidden');
     }
 
-    function checkThis(){
-      if(state.mode!=='practice') return;
-      markOptions();
-    }
-
     function toggleBookmark(){
-      const q = state.pool[state.cur];
-      const key = `${state.subjectIdx}:${q._id}`;
-      state.bookmarks[key] = !state.bookmarks[key];
-      saveLS(LS_BOOK, state.bookmarks);
+      const q=state.pool[state.cur]; const key=`${state.subjectIdx}:${q._id}`;
+      state.bookmarks[key]=!state.bookmarks[key]; saveLS(LS_BOOK,state.bookmarks);
       btnBookmark.textContent = state.bookmarks[key] ? '🔖 Đã đánh dấu' : '🔖 Đánh dấu';
     }
 
@@ -626,79 +577,64 @@
     function nextQ(){ if(state.cur<state.pool.length-1){ state.cur++; renderQuestion(); updateProgress(); } }
 
     function updateProgress(){
-      const cur = state.cur+1, total = state.pool.length || 0;
-      progressText.textContent = `${cur} / ${total}`;
-      progressBar.style.width = total? `${(cur/total)*100}%` : '0%';
+      const cur=state.cur+1, total=state.pool.length||0;
+      progressText.textContent = `${cur>total?total:cur} / ${total}`;
+      progressBar.style.width = total? `${(Math.min(cur,total)/total)*100}%` : '0%';
     }
 
-    function showEmpty(){
-      clearTimer();
-      emptyMsg.classList.remove('hidden');
-      card.classList.add('hidden');
-      resultCard.classList.add('hidden');
-      progressText.textContent = '0 / 0';
-      progressBar.style.width = '0%';
-    }
-
-    // ====== Nộp bài ======
+    // ====== Submit (Exam) ======
     function submitAll(){
       if(state.mode!=='exam') return;
-      const total = state.pool.length;
-      let correct = 0, wrongList = [];
+      const total=state.pool.length; let correct=0, wrongList=[];
       for(let i=0;i<total;i++){
-        const q = state.pool[i];
-        if(state.answers[i] === q.answer) correct++;
-        else wrongList.push({s: state.subjectIdx, q: q._id});
+        const q=state.pool[i];
+        if(state.answers[i]===q.answer) correct++; else wrongList.push({s:state.subjectIdx,q:q._id});
       }
-      // Cập nhật wrong bank (giới hạn 200)
-      state.wrongBank = (wrongList.concat(state.wrongBank)).slice(0,200);
-      saveLS(LS_WRONG, state.wrongBank);
+      state.wrongBank=(wrongList.concat(state.wrongBank)).slice(0,200);
+      saveLS(LS_WRONG,state.wrongBank);
 
       clearTimer();
-      scoreText.textContent = `Đúng ${correct}/${total} câu (${Math.round(correct*100/Math.max(1,total))}%).`;
+      scoreText.textContent=`Đúng ${correct}/${total} câu (${Math.round(correct*100/Math.max(1,total))}%).`;
       resultCard.classList.remove('hidden');
 
-      btnReviewWrong.onclick = ()=>{
-        // chuyển sang luyện tập chỉ các câu sai
-        state.mode = 'practice';
-        modeSelect.value = 'practice';
-        state.filter = 'wrong';
-        filterSelect.value = 'wrong';
+      btnReviewWrong.onclick=()=>{
+        state.mode='practice'; modeSelect.value='practice';
+        state.filter='wrong'; filterSelect.value='wrong';
         start();
       };
-      btnRestart.onclick = start;
+      btnRestart.onclick=start;
     }
 
-    // ====== Lưới danh sách câu (bottom sheet) ======
+    // ====== Grid & FAB ======
     function buildGrid(){
-      qGrid.innerHTML = '';
-      const n = state.pool.length;
-      for(let i=0;i<n;i++){
-        const btn = document.createElement('button');
-        btn.className = 'text-sm rounded-lg border border-slate-200 px-2 py-1 '+(i===state.cur?'bg-blue-600 text-white border-blue-600':'bg-white hover:bg-slate-50');
-        btn.textContent = (i+1);
-        btn.onclick = ()=>{ state.cur = i; renderQuestion(); updateProgress(); };
-        qGrid.appendChild(btn);
+      qGrid.innerHTML='';
+      for(let i=0;i<state.pool.length;i++){
+        const b=document.createElement('button');
+        b.className='text-sm rounded-lg border border-slate-200 px-2 py-1 '+(i===state.cur?'bg-brand text-white border-brand':'bg-white hover:bg-slate-50');
+        b.textContent=(i+1);
+        b.onclick=()=>{ state.cur=i; renderQuestion(); updateProgress(); };
+        qGrid.appendChild(b);
       }
     }
 
-    // ====== Timer (thi thử) ======
+    // ====== Timer ======
     function startTimer(){
-      state.seconds = 0;
-      timerLabel.textContent = '00:00';
-      state.timer = setInterval(()=>{
+      state.seconds=0; timerLbl.textContent='00:00';
+      state.timer=setInterval(()=>{
         state.seconds++;
-        const m = String(Math.floor(state.seconds/60)).padStart(2,'0');
-        const s = String(state.seconds%60).padStart(2,'0');
-        timerLabel.textContent = `${m}:${s}`;
-      }, 1000);
+        const m=String(Math.floor(state.seconds/60)).padStart(2,'0');
+        const s=String(state.seconds%60).padStart(2,'0');
+        timerLbl.textContent=`${m}:${s}`;
+      },1000);
     }
-    function clearTimer(){
-      if(state.timer){ clearInterval(state.timer); state.timer = null; }
-    }
+    function clearTimer(){ if(state.timer){ clearInterval(state.timer); state.timer=null; } }
 
-    // DOM ready
-    document.addEventListener('DOMContentLoaded', init);
+    function resetAll(){
+      localStorage.removeItem(LS_BOOK);
+      localStorage.removeItem(LS_WRONG);
+      state.bookmarks={}; state.wrongBank=[];
+      alert('Đã xóa đánh dấu & lịch sử sai gần đây.');
+    }
   })();
   </script>
 </body>
