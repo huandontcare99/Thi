@@ -1,65 +1,75 @@
-/* Giữ cực nhẹ — đảm bảo mọi cấu trúc đáp án hiện tại đều căn hàng đẹp */
+/* Mobile-first tweaks cho đáp án & ô số câu
+   Không phụ thuộc class khó nhớ.  */
 
-/* UL đáp án: khoảng cách item */
-#answers { display: grid; gap: 12px; }
-
-/* Mỗi đáp án (li) là 1 thẻ “card” */
-#answers li {
-  border: 1px solid #1f2937;           /* slate-800 */
-  background: rgba(15,23,42,.8);       /* slate-900 */
-  border-radius: 12px;
-  overflow: hidden;
+/* Lưới số câu (desktop & mobile) */
+.num-grid .num {
+  display: grid;
+  place-items: center;
+  transition: transform .08s ease, background-color .2s ease, border-color .2s ease;
 }
-
-/* Nội dung bên trong: luôn flex + gap, dù app.js render theo label hay div */
-#answers li > label,
-#answers li > div,
-#answers li .answer-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 12px;
-  width: 100%;
-  box-sizing: border-box;
-  line-height: 1.55;
-}
-
-/* Radio luôn cùng kích thước, không lệch hàng khi xuống dòng */
-#answers input[type="radio"]{
-  width: 20px; height: 20px;
-  margin-top: 2px; flex: 0 0 auto;
-  accent-color: #0ea5e9;               /* sky-500 */
-}
-
-/* Trạng thái sau khi chấm điểm (app.js có thể thêm class) */
-#answers li.correct {
-  border-color: #16a34a;               /* green-600 */
-  box-shadow: inset 0 0 0 2px rgba(34,197,94,.35);
-}
-#answers li.incorrect {
-  border-color: #ef4444;               /* red-500 */
-  box-shadow: inset 0 0 0 2px rgba(239,68,68,.35);
-}
-
-/* Grid số câu — trạng thái chung (app.js thêm class vào nút) */
-.num-grid .num,
-.num-grid button {
-  height: 40px;
-  border-radius: 10px;
-  border: 1px solid #1f2937;
-  background: #0f172a;
-  color: #e5e7eb;
+.num-grid .num.current {
+  border-color: rgb(14 165 233 / 1); /* brand-500 */
+  background: linear-gradient(to bottom, rgb(14 165 233 / 1), rgb(2 132 199 / 1));
+  color: #03121f;
   font-weight: 700;
-  cursor: pointer;
 }
-.num-grid .num.current { outline: 2px solid rgba(14,165,233,.40); outline-offset: 0; }
-.num-grid .num.done    { border-color: #1e3a2f; }
-.num-grid .num.flagged { border-color: #f59e0b; }
-.num-grid .num.right   { border-color: #16a34a; }
-.num-grid .num.wrong   { border-color: #ef4444; }
+.num-grid .num.answered {
+  outline: 2px solid rgba(56,189,248,0.3);
+}
+.num-grid .num.marked {
+  box-shadow: inset 0 0 0 2px rgba(250,204,21,.9);
+}
+.num-grid .num:active {
+  transform: scale(.97);
+}
 
-/* Ẩn scrollbar ngang khi controls cuộn */
-@media (hover:none){
-  .overflow-x-auto::-webkit-scrollbar{ display: none; }
-  .overflow-x-auto{ -ms-overflow-style: none; scrollbar-width: none; }
+/* Đáp án: block clickable, căn hàng chuẩn theo hình */
+.ans {
+  position: relative;
+}
+.ans-label {
+  display: grid;
+  grid-template-columns: 1.5rem 1fr;
+  align-items: start;
+  gap: .5rem;
+  padding: .75rem .875rem;
+  border-radius: .75rem;
+  border: 1px solid rgb(30 41 59 / 1);      /* slate-800 */
+  background: rgb(15 23 42 / 1);            /* slate-900 */
+  transition: background-color .2s ease, border-color .2s ease, transform .08s ease;
+  user-select: none;
+}
+.ans .letter {
+  display: inline-grid;
+  place-items: center;
+  width: 1.5rem; height: 1.5rem;
+  border-radius: .5rem;
+  border: 1px solid rgb(30 41 59 / 1);
+  background: rgb(2 6 23 / 1);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: rgb(203 213 225 / 1);
+  margin-top: .125rem;
+}
+.ans .peer:checked + .ans-label {
+  border-color: rgb(14 165 233 / 1);
+  background: linear-gradient(180deg, rgba(14,165,233,.15), rgba(2,132,199,.1));
+}
+.ans .peer:active + .ans-label { transform: scale(.99); }
+
+/* Badge dùng trong bảng kết quả */
+.badge-ghost,
+.badge-correct,
+.badge-wrong {
+  display:inline-grid;place-items:center;width:1.5rem;height:1.5rem;
+  border-radius:.5rem;border:1px solid rgb(30 41 59 / 1);margin-right:.35rem;
+  font-weight:700;font-size:.875rem;
+}
+.badge-ghost { background: rgb(2 6 23 / 1); color: rgb(203 213 225 / 1); }
+.badge-correct { background: #22c55e1a; border-color:#22c55e; color:#22c55e; }
+.badge-wrong { background: #ef44441a; border-color:#ef4444; color:#ef4444; }
+
+/* Tablet tối ưu spacing một chút */
+@media (min-width: 640px) {
+  .ans-label { padding: .875rem 1rem; }
 }
