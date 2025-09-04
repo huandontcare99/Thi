@@ -3,14 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Quiz Pro — 2 files (Mobile-first)</title>
+  <title>Quiz VIP Pro — 2 files (Mobile-first)</title>
   <!-- UI libs -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <!-- Pako để ungzip data.js -->
-  <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
-  <!-- Ngân hàng câu hỏi (GZIP Base64) -->
-  <script src="data.js"></script>
+  <!-- NHỚ đặt data_vip.js cùng thư mục -->
+  <script src="./data.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root { color-scheme: light dark; }
@@ -30,6 +28,9 @@
     .pulse-ring::after { content:""; position:absolute; inset:-6px; border-radius:1rem; border:2px dashed rgba(59,130,246,.5); animation:pulse 1.2s ease-out 2; }
     @keyframes pulse { 0%{opacity:.8; transform:scale(.98);} 70%{opacity:.1; transform:scale(1.06);} 100%{opacity:0; transform:scale(1.12);} }
     .sticky-nav { position: sticky; top: 56px; z-index: 40; } /* navigator sticky bên dưới header */
+    .fab { position: fixed; right: 14px; bottom: 18px; z-index: 60; }
+    .drawer { position: fixed; inset: 0; z-index: 70; display:none; }
+    .drawer.open { display:block; }
   </style>
 </head>
 <body class="bg-slate-50">
@@ -38,8 +39,8 @@
     <div class="max-w-3xl mx-auto px-3 py-2 flex items-center gap-2">
       <button id="btnBackToSetup" class="hidden sm:inline-flex px-2 py-1 rounded-lg bg-slate-100 text-xs">Thiết lập</button>
       <div class="flex-1">
-        <h1 class="text-base font-bold tracking-tight">Quiz Pro — 2 files</h1>
-        <p class="text-[11px] text-slate-600">Setup ➜ Làm bài ➜ Nộp & xem kết quả • Mobile-first</p>
+        <h1 class="text-base font-bold tracking-tight">Quiz VIP Pro — 2 files</h1>
+        <p class="text-[11px] text-slate-600">Setup ➜ Làm bài ➜ Ôn câu sai đến đúng hết • Mobile-first</p>
       </div>
       <div id="examHeader" class="hidden items-center gap-3">
         <div class="text-center">
@@ -145,6 +146,19 @@
       </section>
     </section>
 
+    <!-- Drawer navigator (mở được giữa bài) -->
+    <div id="navDrawer" class="drawer">
+      <div class="absolute inset-0 bg-black/40" id="drawerBackdrop"></div>
+      <div class="absolute right-0 top-0 h-full w-80 max-w-[92vw] bg-white shadow-xl p-3">
+        <div class="flex items-center justify-between">
+          <div class="font-semibold text-slate-700 text-sm">Danh sách câu</div>
+          <button id="btnCloseDrawer" class="px-2 py-1 rounded bg-slate-100 text-xs">Đóng</button>
+        </div>
+        <div id="drawerNav" class="mt-3 grid grid-cols-6 gap-2 text-xs"></div>
+      </div>
+    </div>
+    <button id="btnOpenDrawer" class="fab px-4 py-3 rounded-full bg-indigo-600 text-white text-sm shadow-lg">☰ Danh sách</button>
+
     <!-- ========== EDITOR (Đổi đáp) ========== -->
     <section id="editorSection" class="hidden bg-white rounded-2xl p-4 shadow-card">
       <div class="flex items-center gap-2">
@@ -156,7 +170,7 @@
           <button id="btnCloseEditor" class="px-3 py-1.5 rounded-lg bg-slate-100 text-sm">Đóng</button>
         </div>
       </div>
-      <p class="text-xs text-slate-500 mt-1">Chọn đáp án đúng cho từng câu. Thay đổi được lưu cục bộ và áp dụng cho các lần sau.</p>
+      <p class="text-xs text-slate-500 mt-1">Chọn đáp án đúng cho từng câu. Lưu localStorage & áp dụng cho lần sau.</p>
       <div id="editorList" class="mt-3 divide-y"></div>
     </section>
   </main>
@@ -164,25 +178,26 @@
   <!-- ================== APP SCRIPT ================== -->
   <script>
     // ---------- STATE ----------
-    const BANK = [];                                  // tất cả câu hỏi
+    const BANK = [];
     const HARD_BANK_KEY = 'quizHardBank';
     const SETUP_KEY     = 'quizSetupPro';
     const OVERRIDE_KEY  = 'quizAnswerOverrides';
 
     const state = {
-      phase: 'setup',                                 // setup | exam | editor
-      items: [],
-      answers: new Map(),
-      hard: new Set(),
+      phase: 'setup',                 // setup | exam | editor
+      items: [],                      // câu hỏi hiện tại
+      answers: new Map(),             // id -> index
+      hard: new Set(),                // tập id câu đánh dấu ★
       currentIndex: 0,
       submitted: false,
       timeLeft: 0,
       timerId: null,
       setup: { subject:'all', limit:20, minutes:15, shuffleQ:true, shuffleA:true, mode:'exam', resume:false, preferHard:false },
-      overrides: {},                                  // id -> correctIndex
+      overrides: {},                  // id -> correctIndex (đổi đáp)
       filter: 'all',
       search: '',
-      preferHardLive: false                           // ưu tiên ★ trong navigator (không reload)
+      preferHardLive: false,
+      wrongQueue: null                // null | array ids (đang ở vòng ôn lại)
     };
 
     // ---------- SHORTCUTS ----------
@@ -208,6 +223,9 @@
       editorSection: $('editorSection'), btnEditor: $('btnEditor'), btnCloseEditor: $('btnCloseEditor'),
       editorSubject: $('editorSubject'), editorList: $('editorList'),
       editorCounter: $('editorCounter'), editorSearch: $('editorSearch'),
+      // drawer
+      navDrawer: $('navDrawer'), drawerBackdrop: $('drawerBackdrop'), drawerNav: $('drawerNav'),
+      btnOpenDrawer: $('btnOpenDrawer'), btnCloseDrawer: $('btnCloseDrawer'),
     };
 
     // ---------- UTILS ----------
@@ -258,7 +276,7 @@
           }
           if (correctIndex === null){
             const set = s => new Set(s.split(' ').filter(Boolean));
-            const interRatio = (a,b) => { const sa = set(normalizeVN(a)), sb = set(normalizeVN(b)); const inter=[...sa].filter(x=>sb.has(x)).length; const union=new Set([...sa,...sb]).size||1; return inter/union; };
+            const interRatio = (a,b) => { const sa=set(normalizeVN(a)), sb=set(normalizeVN(b)); const inter=[...sa].filter(x=>sb.has(x)).length; const union=new Set([...sa,...sb]).size||1; return inter/union; };
             let best=-1, bestI=null;
             for (let i=0;i<options.length;i++){ const r=interRatio(options[i], explicitCorrect); if(r>best){ best=r; bestI=i; } }
             if (bestI!==null && best>=0.35) correctIndex=bestI;
@@ -273,15 +291,15 @@
 
     // ---------- BOOT ----------
     (function boot(){
-      // Lấy text từ data.js
-      const textQu = decodeBankFromGzB64(GZ_B64_QU);
-      const textPh = decodeBankFromGzB64(GZ_B64_PH);
-
-      // Parse ngân hàng
+      if (typeof window.getTextQu!=='function' || typeof window.getTextPh!=='function'){
+        Swal.fire({icon:'error', title:'Thiếu data_vip.js', text:'Đặt data_vip.js cùng thư mục với index_vip.html'});
+        return;
+      }
+      const textQu = window.getTextQu();
+      const textPh = window.getTextPh();
+      BANK.push(...parseTxt(textPh, "Phát triển ứng dụng Web (Mở nguồn)"));      // theo tên file bạn
       BANK.push(...parseTxt(textQu, "Quản trị dự án CNTT"));
-      BANK.push(...parseTxt(textPh, "Phát triển ứng dụng Web (Mở nguồn)"));
 
-      // Load hard + overrides
       state.hard = new Set(Object.keys(load(HARD_BANK_KEY, {})));
       state.overrides = load(OVERRIDE_KEY, {});
 
@@ -312,7 +330,7 @@
       [els.setupShuffleQ, els.setupShuffleA, els.setupResume, els.setupPreferHard].forEach(i=> i.onchange = saveSetup);
       els.setupMode.onchange = saveSetup;
 
-      els.btnStart.onclick = startExamFromSetup;
+      els.btnStart.onclick = ()=> startFromSetup();
       els.btnClearHard.onclick = ()=>{
         Swal.fire({icon:'warning', title:'Xoá danh sách câu ★ đã lưu?', showCancelButton:true, confirmButtonText:'Xoá', cancelButtonText:'Huỷ'})
           .then(({isConfirmed})=>{ if(isConfirmed){ state.hard = new Set(); save(HARD_BANK_KEY, {}); updateNavigator(); }});
@@ -320,8 +338,12 @@
       els.btnExportOverrides.onclick = exportOverrides;
       els.importOverrides.onchange = importOverridesFile;
 
+      // editor + drawer
       els.btnBackToSetup.onclick = returnToSetup;
       els.btnEditor.onclick = openEditor;
+      els.btnOpenDrawer.onclick = openDrawer;
+      els.btnCloseDrawer.onclick = closeDrawer;
+      els.drawerBackdrop.onclick = closeDrawer;
 
       updateBankCount();
     }
@@ -346,31 +368,40 @@
     }
     function clampLimitToBank(){
       const max = parseInt(els.bankCount.textContent||'0',10) || 0;
-      els.setupLimit.value = Math.max(1, Math.min(parseInt(els.setupLimit.value||'1',10)||1, Math.max(1,max)));
+      els.setupLimit.value = clamp(parseInt(els.setupLimit.value||'1',10)||1, 1, Math.max(1,max));
     }
 
-    // ---------- START EXAM ----------
-    function startExamFromSetup(){
-      saveSetup();
-      let pool = (state.setup.subject==='all') ? BANK.slice() : BANK.filter(x=>x.subject===state.setup.subject);
-      pool = pool.map(it => (state.overrides[it.id]!==undefined ? {...it, correctIndex: state.overrides[it.id]} : it));
+    // ---------- SESSION BUILD ----------
+    function startFromSetup(){
+      state.wrongQueue = null; // bắt đầu mới
+      const subj = state.setup.subject;
+      let pool = subj==='all' ? BANK.slice() : BANK.filter(x=>x.subject===subj);
+      pool = applyOverrides(pool);
       if (state.setup.preferHard){
         const hard = pool.filter(x=>state.hard.has(x.id));
         const rest = pool.filter(x=>!state.hard.has(x.id));
         pool = hard.concat(rest);
       }
       if (state.setup.shuffleQ) shuffle(pool);
-      const limit = Math.max(1, Math.min(state.setup.limit, pool.length));
-      const selected = pool.slice(0, limit);
-
-      state.items = selected.map(it=>{
+      const limit = clamp(state.setup.limit, 1, pool.length);
+      startRound(pool.slice(0, limit));
+    }
+    function startWrongRound(ids){
+      state.wrongQueue = ids.slice();
+      const pool = BANK.filter(x=> ids.includes(x.id));
+      startRound(applyOverrides(pool));
+    }
+    function applyOverrides(pool){
+      return pool.map(it => (state.overrides[it.id]!==undefined ? {...it, correctIndex: state.overrides[it.id]} : it));
+    }
+    function startRound(selectedPool){
+      state.items = selectedPool.map(it=>{
         const order = it.options.map((_,i)=>i);
         if (state.setup.shuffleA) shuffle(order);
         const options = order.map(i=>it.options[i]);
         const correctIndex = order.indexOf(it.correctIndex);
         return {...it, options, correctIndex};
       });
-
       state.answers = new Map();
       state.currentIndex = 0;
       state.submitted = false;
@@ -386,7 +417,7 @@
 
       attachExamHandlersOnce();
       renderAll();
-      Swal.fire({icon:'success', title:'Bắt đầu làm bài', timer:900, showConfirmButton:false});
+      Swal.fire({icon:'success', title: state.wrongQueue ? 'Ôn lại câu sai' : 'Bắt đầu làm bài', timer:900, showConfirmButton:false});
     }
     function returnToSetup(){
       if (state.timerId) clearInterval(state.timerId);
@@ -398,18 +429,37 @@
       window.scrollTo({top:0, behavior:'smooth'});
     }
 
+    // ---------- DRAWER ----------
+    function openDrawer(){ els.navDrawer.classList.add('open'); syncDrawerNav(); }
+    function closeDrawer(){ els.navDrawer.classList.remove('open'); }
+    function syncDrawerNav(){
+      els.drawerNav.innerHTML = '';
+      filteredIndices().forEach(i=>{
+        const it = state.items[i];
+        const answered = state.answers.has(it.id);
+        const hard = state.hard.has(it.id);
+        let cls = 'nav-btn-default';
+        if (hard) cls='nav-btn-hard';
+        if (answered) cls='nav-btn-answered';
+        if (state.submitted) cls = (state.answers.get(it.id)===it.correctIndex) ? 'nav-btn-correct':'nav-btn-wrong';
+        const b = document.createElement('button');
+        b.className = 'rounded-lg py-1 text-center border text-xs '+cls;
+        b.textContent = String(i+1);
+        b.onclick = ()=>{ closeDrawer(); jumpTo(i); };
+        els.drawerNav.appendChild(b);
+      });
+    }
+
     // ---------- EXAM RENDER ----------
     function attachExamHandlersOnce(){
       if (attachExamHandlersOnce.done) return; attachExamHandlersOnce.done = true;
-
       els.btnPrev.onclick = ()=> jumpTo(state.currentIndex-1);
       els.btnNext.onclick = ()=> jumpTo(state.currentIndex+1);
       els.btnSubmit.onclick = manualSubmit;
       els.btnRestart.onclick = ()=> Swal.fire({icon:'question', title:'Thoát về thiết lập?', showCancelButton:true, confirmButtonText:'Đồng ý', cancelButtonText:'Huỷ'}).then(({isConfirmed})=>{ if (isConfirmed) returnToSetup(); });
-      els.filterView.onchange = ()=>{ state.filter = els.filterView.value; updateNavigator(); };
-      els.searchBox.oninput  = ()=>{ state.search = els.searchBox.value; updateNavigator(); };
-      els.preferHardLive.onchange = ()=>{ state.preferHardLive = els.preferHardLive.checked; updateNavigator(); }; // ưu tiên ★ không reload
-
+      els.filterView.onchange = ()=>{ state.filter = els.filterView.value; updateNavigator(); syncDrawerNav(); };
+      els.searchBox.oninput  = ()=>{ state.search = els.searchBox.value; updateNavigator(); syncDrawerNav(); };
+      els.preferHardLive.onchange = ()=>{ state.preferHardLive = els.preferHardLive.checked; updateNavigator(); syncDrawerNav(); };
       // Editor
       els.btnEditor.onclick = openEditor;
       els.btnCloseEditor.onclick = closeEditor;
@@ -418,7 +468,7 @@
     }
 
     function renderAll(){
-      els.title.textContent = (state.setup.subject==='all'?'Tất cả môn':state.setup.subject) + ' • ' + state.items.length + ' câu • ' + (state.setup.mode==='exam'?'Kiểm tra':'Luyện tập');
+      els.title.textContent = (state.setup.subject==='all'?'Tất cả môn':state.setup.subject) + ' • ' + state.items.length + ' câu • ' + (state.setup.mode==='exam'?'Kiểm tra':'Luyện tập') + (state.wrongQueue ? ' • Ôn câu sai' : '');
       updateNavigator();
       els.questionContainer.innerHTML = '';
       const frag = document.createDocumentFragment();
@@ -455,7 +505,7 @@
 
           input.addEventListener('change', ()=>{
             state.answers.set(item.id, optIdx);
-            updateProgress(); updateNavigator();
+            updateProgress(); updateNavigator(); syncDrawerNav();
             if (state.setup.mode==='practice'){
               const res = document.getElementById('res-'+displayIdx);
               const ok = optIdx===item.correctIndex;
@@ -477,7 +527,7 @@
           e.preventDefault();
           if (state.hard.has(item.id)) state.hard.delete(item.id); else state.hard.add(item.id);
           const obj={}; state.hard.forEach(id=>obj[id]=true); save(HARD_BANK_KEY, obj);
-          updateNavigator(); // sắp xếp navigator theo ưu tiên ★ ngay, không reload
+          updateNavigator(); syncDrawerNav();
           star.className = 'text-lg ' + (state.hard.has(item.id) ? 'text-yellow-500' : 'text-slate-300');
         });
 
@@ -502,7 +552,7 @@
         }
         return true;
       });
-      if (state.preferHardLive){ // ưu tiên ★ chỉ đổi thứ tự navigator
+      if (state.preferHardLive){
         const a = res.filter(i=>state.hard.has(state.items[i].id));
         const b = res.filter(i=>!state.hard.has(state.items[i].id));
         res = a.concat(b);
@@ -536,7 +586,7 @@
     }
 
     function jumpTo(idx, smooth=true){
-      idx = Math.max(0, Math.min(idx, state.items.length-1));
+      idx = clamp(idx, 0, state.items.length-1);
       state.currentIndex = idx;
       const el = document.getElementById('q-'+idx);
       if (!el) return;
@@ -568,10 +618,11 @@
       if (state.timerId){ clearInterval(state.timerId); state.timerId=null; }
 
       let correct=0;
+      const wrongIds=[];
       state.items.forEach((it,i)=>{
         const chosen = state.answers.get(it.id);
         const ok = chosen===it.correctIndex;
-        if (ok) correct++;
+        if (ok) correct++; else wrongIds.push(it.id);
         const card = document.getElementById('q-'+i);
         const res  = document.getElementById('res-'+i);
         if (card){
@@ -586,20 +637,34 @@
           res.classList.toggle('text-rose-700', !ok);
         }
       });
-      updateNavigator();
+      updateNavigator(); syncDrawerNav();
 
       const total = state.items.length;
       const score = Math.round(correct/total*100);
-      Swal.fire({
-        icon: score>=50 ? 'success' : 'error',
-        title: (fromTimeout?'Hết giờ — Điểm ':'Nộp bài — Điểm ')+score+'/100',
-        html: '<div class="space-y-1 text-left">'
+
+      if (wrongIds.length){
+        Swal.fire({
+          icon: 'info',
+          title: (fromTimeout?'Hết giờ — ':'') + 'Điểm ' + score + '/100',
+          html: '<div class="text-left space-y-2">'
               + '<div><b>Đúng:</b> '+correct+'/'+total+'</div>'
-              + '<div><b>Tỷ lệ đúng:</b> '+score+'%</div>'
-              + '<div class="text-slate-500 text-xs">Lựa chọn đã bị khoá để tránh bấm nhầm khi xem đáp án.</div>'
+              + '<div><b>Câu sai:</b> '+wrongIds.length+'</div>'
+              + '<div class="text-slate-500 text-xs">Sẽ ôn lại các câu sai cho đến khi đúng hết.</div>'
               + '</div>',
-        confirmButtonText:'Đóng'
-      });
+          confirmButtonText: 'Ôn lại '+wrongIds.length+' câu sai',
+          showDenyButton: true,
+          denyButtonText: 'Quay về thiết lập'
+        }).then((res)=>{
+          if (res.isConfirmed) startWrongRound(wrongIds);
+          else if (res.isDenied) returnToSetup();
+        });
+      } else {
+        Swal.fire({
+          icon: 'success',
+          title: (fromTimeout?'Hết giờ — ':'') + 'Tuyệt vời! Đúng hết ' + total + '/' + total,
+          confirmButtonText: 'Quay về thiết lập'
+        }).then(()=> returnToSetup());
+      }
     }
 
     // ---------- EDITOR (Đổi đáp) ----------
@@ -617,9 +682,9 @@
       els.editorSection.classList.add('hidden');
       els.setupSection.classList.remove('hidden');
     }
-    els.btnCloseEditor.onclick = closeEditor;
-    els.editorSubject.onchange = renderEditorList;
-    els.editorSearch.oninput = renderEditorList;
+    els.btnCloseEditor && (els.btnCloseEditor.onclick = closeEditor);
+    els.editorSubject && (els.editorSubject.onchange = renderEditorList);
+    els.editorSearch && (els.editorSearch.oninput = renderEditorList);
 
     function renderEditorList(){
       const subj = els.editorSubject.value || 'all';
@@ -677,16 +742,6 @@
       };
       r.readAsText(f, 'utf-8');
     }
-
-    // ---------- INIT after data.js loaded ----------
-    (function initAfterData(){
-      try{
-        const _ = decodeBankFromGzB64(GZ_B64_QU);
-      }catch(e){
-        console.error(e);
-        Swal.fire({icon:'error', title:'Không đọc được ngân hàng câu hỏi (data.js). Kiểm tra đường dẫn.'});
-      }
-    })();
   </script>
 </body>
 </html>
