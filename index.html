@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Quiz</title>
+  <title>Quiz Master</title>
 
   <!-- Favicon inline để tránh 404 -->
   <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="%230ea5e9"/><text x="50%" y="56%" font-size="40" text-anchor="middle" fill="%2303121f" font-family="Inter,Arial,sans-serif">Q</text></svg>'>
 
-  <!-- Tailwind CDN (ổn cho bản dùng tại chỗ); nếu build production hãy dùng CLI/PostCSS -->
+  <!-- Tailwind (CDN cho chạy local). Production nên build bằng CLI/PostCSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -18,28 +18,27 @@
           boxShadow: { soft: '0 10px 24px rgba(0,0,0,.25)' }
         }
       }
-    };
+    }
   </script>
 
-  <!-- Fixes & custom nhỏ -->
+  <!-- CSS tinh chỉnh nhẹ -->
   <link rel="stylesheet" href="tailwind-fix.css" />
 </head>
 <body class="min-h-dvh bg-slate-950 text-slate-100 antialiased">
   <div class="mx-auto max-w-[1100px]">
-    <!-- Header + Controls -->
+    <!-- Header -->
     <header class="sticky top-0 z-30 border-b border-slate-800 bg-slate-900/80 backdrop-blur">
       <div class="flex items-center gap-3 px-4 pt-3 pb-2">
         <div class="grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br from-brand-500 to-sky-400 font-extrabold text-slate-900">Q</div>
         <h1 class="text-base font-semibold tracking-wide">Quiz Master</h1>
       </div>
 
-      <!-- MOBILE-FIRST: mỗi control chiếm 100% chiều ngang; lên sm=>2 cột; md=>4 cột -->
+      <!-- Controls: mobile 1 cột, sm=2, md=4 -->
       <form id="controls" class="control-grid grid gap-2 px-4 pb-3 sm:grid-cols-2 md:grid-cols-4">
         <label class="ctrl">
           <span class="lbl">Môn</span>
           <select id="subject" class="ctrl-input"></select>
         </label>
-
         <label class="ctrl">
           <span class="lbl">Chế độ</span>
           <select id="mode" class="ctrl-input">
@@ -47,12 +46,10 @@
             <option value="exam">Thi</option>
           </select>
         </label>
-
         <label class="ctrl">
           <span class="lbl">Số câu</span>
           <input id="count" type="number" min="1" max="999" class="ctrl-input" />
         </label>
-
         <label class="ctrl">
           <span class="lbl">Thời gian (phút, 0 = không đếm)</span>
           <input id="duration" type="number" min="0" max="999" value="0" class="ctrl-input" />
@@ -87,7 +84,7 @@
 
     <!-- Main -->
     <main class="grid grid-cols-1 gap-4 p-4 md:grid-cols-[260px_minmax(0,1fr)]">
-      <!-- Sidebar numbers (desktop) -->
+      <!-- Sidebar số câu (desktop) -->
       <aside class="hidden md:block">
         <div class="rounded-2xl border border-slate-800 bg-slate-900 shadow-soft">
           <div class="border-b border-slate-800 p-3 font-bold">Danh sách câu</div>
@@ -95,14 +92,15 @@
         </div>
       </aside>
 
-      <!-- Question area -->
+      <!-- Nội dung -->
       <section class="space-y-4">
-        <!-- Numbers for mobile -->
+        <!-- Số câu cho mobile -->
         <details class="rounded-2xl border border-slate-800 bg-slate-900 md:hidden">
           <summary class="cursor-pointer list-none p-3 font-semibold">Danh sách câu hỏi</summary>
           <div id="numberGridMobile" class="border-t border-slate-800 p-3 num-grid grid grid-cols-6 gap-2"></div>
         </details>
 
+        <!-- Card câu hỏi -->
         <article id="card" class="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-soft">
           <div class="mb-2 flex items-center justify-between">
             <div class="flex flex-wrap items-center gap-2">
@@ -118,7 +116,7 @@
           <ul id="answers" class="space-y-3" role="listbox" aria-label="Đáp án"></ul>
         </article>
 
-        <!-- Bottom actions -->
+        <!-- Hành động -->
         <div class="sticky bottom-[env(safe-area-inset-bottom,0px)] z-20 grid grid-cols-4 gap-2 rounded-2xl border border-slate-800 bg-slate-900/95 p-2 backdrop-blur md:static md:bg-transparent md:p-0">
           <button id="prev" class="h-10 rounded-xl border border-slate-800 bg-slate-900 disabled:opacity-50" disabled>◀ Trước</button>
           <button id="clear" class="h-10 rounded-xl border border-slate-800 bg-slate-900 disabled:opacity-50" disabled>Xóa chọn</button>
@@ -139,7 +137,7 @@
     <footer class="px-4 py-6 text-center text-xs text-slate-500">© Quiz Master</footer>
   </div>
 
-  <!-- Nạp theo thứ tự (defer để DOM sẵn sàng) -->
+  <!-- CHÚ Ý: Nạp data trước app, cả 2 đều defer để DOM sẵn sàng -->
   <script defer src="data.js"></script>
   <script defer src="app.js"></script>
 </body>
