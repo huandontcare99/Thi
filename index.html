@@ -1,186 +1,195 @@
-
-<!-- ======================== index.html ======================== -->
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Quiz Pro — Luyện/Thi trắc nghiệm</title>
-  <meta name="theme-color" content="#111827" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0ea5e9" />
+  <title>Quiz | Luyện & Thi</title>
+
+  <!-- Manifest (nếu bạn đã có) -->
   <link rel="manifest" href="manifest.json" />
+
+  <!-- CSS mới -->
   <link rel="stylesheet" href="styles.css" />
+
+  <!-- Preload nhẹ để font hệ thống render nhanh, không cần tải webfont -->
+  <meta http-equiv="x-dns-prefetch-control" content="on" />
 </head>
 <body>
-  <header class="app-header">
-    <div class="brand">
-      <span class="logo">🎯</span>
-      <div class="titles">
-        <h1>Quiz Pro</h1>
-        <p class="subtitle">Luyện/Thi trắc nghiệm — mượt, chính xác, offline</p>
-      </div>
-    </div>
-    <nav class="top-actions">
-      <button id="btnTabQuiz" class="tab-btn active">Làm bài</button>
-      <button id="btnTabHistory" class="tab-btn">Lịch sử</button>
-      <button id="btnTabQA" class="tab-btn">Ngân hàng</button>
-      <button id="btnInstall" class="ghost">Cài ứng dụng</button>
-      <a id="btnHelp" class="ghost" href="#help">Trợ giúp</a>
-    </nav>
-  </header>
+  <noscript>Ứng dụng cần bật JavaScript.</noscript>
 
-  <main id="main">
-    <!-- ========== TAB: QUIZ / SETUP ========== -->
-    <section id="tab-quiz" class="tab active">
-      <div id="setup" class="card">
-        <div class="grid grid-2">
-          <div>
-            <label for="selSubject">Môn học</label>
-            <select id="selSubject"></select>
-            <small id="subjectInfo" class="muted"></small>
-          </div>
-          <div>
-            <label for="numQuestions">Số câu</label>
-            <input id="numQuestions" type="number" min="1" step="1" placeholder="vd. 20" />
-            <small class="muted">Để trống = dùng tất cả câu hợp lệ</small>
-          </div>
-          <div>
-            <label for="selMode">Chế độ</label>
-            <select id="selMode">
-              <option value="practice">Luyện tập (hiện đúng/sai ngay)</option>
-              <option value="exam">Thi (ẩn đáp án tới khi nộp)</option>
-            </select>
-          </div>
-          <div class="flex-row">
-            <label class="switch">
-              <input id="chkShuffleOptions" type="checkbox" checked />
-              <span class="slider"></span>
-            </label>
-            <span>Đảo thứ tự đáp án</span>
-          </div>
-          <div class="flex-row">
-            <label class="switch">
-              <input id="chkTimer" type="checkbox" />
-              <span class="slider"></span>
-            </label>
-            <span>Bật hẹn giờ</span>
-          </div>
-          <div id="timerBox" class="hidden">
-            <label for="timerMinutes">Thời gian (phút)</label>
-            <input id="timerMinutes" type="number" min="1" step="1" value="30" />
-          </div>
-        </div>
-        <div class="setup-actions">
-          <button id="btnStart" class="primary">Bắt đầu</button>
-          <button id="btnSeedLink" class="ghost" title="Sao chép link cùng đề (seed)">Sao chép link đề</button>
-          <span id="copyToast" class="toast hidden">Đã sao chép!</span>
-        </div>
-        <details class="help">
-          <summary>Phím tắt & mẹo</summary>
-          <ul>
-            <li><b>1/2/3/4</b> chọn đáp án A/B/C/D</li>
-            <li><b>←/→</b> chuyển câu trước/sau</li>
-            <li><b>Enter</b> nộp bài (khi đã trả lời đủ)</li>
-            <li><b>R</b> làm lại đề với cùng seed</li>
-          </ul>
-        </details>
+  <div id="app" class="app">
+    <!-- TOP BAR -->
+    <header class="topbar" role="banner">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">Q</div>
+        <h1 class="title">Quiz Master</h1>
       </div>
 
-      <div id="exam" class="hidden">
-        <div class="exam-top">
-          <div class="pill" id="pillSubject">—</div>
-          <div class="pill" id="pillMode">—</div>
-          <div class="pill" id="pillSeed">seed: —</div>
-          <div id="timer" class="timer hidden">00:00</div>
+      <!-- Cụm điều khiển chính -->
+      <div class="controls">
+        <label class="ctrl">
+          <span>Môn</span>
+          <select id="subjectSelect" class="input">
+            <!-- app.js sẽ fill từ data.js -->
+          </select>
+        </label>
+
+        <label class="ctrl">
+          <span>Chế độ</span>
+          <select id="modeSelect" class="input">
+            <option value="practice">Luyện</option>
+            <option value="exam">Thi</option>
+          </select>
+        </label>
+
+        <label class="ctrl small">
+          <span>Số câu</span>
+          <input id="questionCount" type="number" min="1" max="300" step="1" class="input" placeholder="VD: 20" />
+        </label>
+
+        <label class="ctrl small">
+          <span>Thời gian (phút)</span>
+          <input id="duration" type="number" min="0" max="999" step="1" class="input" placeholder="0 = không giới hạn" />
+        </label>
+
+        <label class="ctrl toggle">
+          <input id="shuffleToggle" type="checkbox" />
+          <span>Đảo đáp án</span>
+        </label>
+
+        <label class="ctrl">
+          <span>Seed</span>
+          <input id="seed" type="text" class="input" placeholder="Tự điền nếu để trống" inputmode="numeric" />
+        </label>
+
+        <button id="startBtn" class="btn btn-primary">Bắt đầu</button>
+        <button id="resumeBtn" class="btn" hidden>Tiếp tục</button>
+
+        <button id="installBtn" class="btn btn-ghost" title="Cài ứng dụng" aria-label="Cài ứng dụng">
+          Cài ứng dụng
+        </button>
+      </div>
+
+      <!-- Thanh tiến trình sticky -->
+      <div class="progress" role="progressbar" aria-label="Tiến độ làm bài" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div id="progressBar" class="progress-bar" style="width:0%"></div>
+        <div class="progress-text">
+          <span id="progressText">0/0</span>
+          <span id="timer" class="timer" aria-live="polite">00:00</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- NAV MOBILE COLLAPSIBLE -->
+    <details class="drawer nav-drawer" id="navDrawer">
+      <summary>Danh sách câu hỏi</summary>
+      <div class="drawer-body">
+        <div id="numberNav" class="num-grid" role="navigation" aria-label="Điều hướng câu hỏi">
+          <!-- app.js sẽ render các nút số câu -->
+        </div>
+      </div>
+    </details>
+
+    <!-- LAYOUT CHÍNH -->
+    <main class="layout" role="main">
+      <!-- Cột trái (PC/Tablet) -->
+      <aside class="side left hide-on-mobile">
+        <div class="card">
+          <div class="card-hd">Danh sách câu</div>
+          <div id="numberNavDesktop" class="num-grid" role="navigation" aria-label="Điều hướng câu hỏi (desktop)"></div>
         </div>
 
-        <div class="progress">
-          <div id="progressBar" class="progress-bar" style="width:0%"></div>
-          <div id="progressText" class="progress-text">0/0</div>
+        <div class="card">
+          <div class="card-hd">Seed hiện tại</div>
+          <div id="seedBox" class="mono"></div>
         </div>
+      </aside>
 
-        <div class="exam-body">
-          <aside class="question-nav" id="questionNav"></aside>
-          <article class="question-area">
-            <div id="qNumber" class="q-number">Câu 1</div>
-            <div id="qText" class="q-text"></div>
-            <form id="options" class="options"></form>
-            <div id="feedback" class="feedback"></div>
-            <div class="q-actions">
-              <button id="btnPrev" class="ghost">← Trước</button>
-              <button id="btnNext" class="ghost">Sau →</button>
-              <div class="spacer"></div>
-              <button id="btnSubmit" class="primary">Nộp bài</button>
+      <!-- Trung tâm: Vùng câu hỏi -->
+      <section class="center">
+        <article class="question" id="questionCard" aria-live="polite">
+          <div class="q-hd">
+            <div class="badges">
+              <span id="subjectBadge" class="badge">—</span>
+              <span id="modeBadge" class="badge badge-soft">—</span>
             </div>
-          </article>
-        </div>
-      </div>
+            <div id="qIndex" class="q-index">Câu —</div>
+          </div>
 
-      <div id="result" class="hidden card">
-        <div class="result-head">
-          <h2>Kết quả</h2>
-          <div class="result-stats">
-            <div><span class="muted">Môn:</span> <b id="resSubject">—</b></div>
-            <div><span class="muted">Chế độ:</span> <b id="resMode">—</b></div>
-            <div><span class="muted">Seed:</span> <b id="resSeed">—</b></div>
-            <div><span class="muted">Điểm:</span> <b id="resScore">—</b></div>
-            <div><span class="muted">Thời gian:</span> <b id="resTime">—</b></div>
+          <div id="questionText" class="q-text">
+            Chọn “Bắt đầu” để vào đề.
+          </div>
+
+          <ul id="answers" class="answers" role="listbox" aria-label="Danh sách đáp án">
+            <!-- app.js render các đáp án (radio) -->
+          </ul>
+        </article>
+
+        <!-- Hàng nút điều hướng (sticky ở mobile) -->
+        <div class="actions">
+          <button id="prevBtn" class="btn" disabled>◀ Trước</button>
+          <button id="clearBtn" class="btn btn-ghost" disabled>Xóa chọn</button>
+          <button id="markBtn" class="btn btn-ghost" disabled>Đánh dấu</button>
+          <button id="nextBtn" class="btn">Tiếp ▶</button>
+        </div>
+
+        <div class="submit-row">
+          <button id="submitBtn" class="btn btn-primary" disabled>Nộp bài</button>
+          <button id="reviewWrongBtn" class="btn" hidden>Xem câu sai</button>
+          <button id="exportCsvBtn" class="btn btn-ghost" hidden>Xuất CSV</button>
+        </div>
+
+        <section id="resultPanel" class="result" hidden>
+          <!-- app.js sẽ đổ kết quả -->
+        </section>
+      </section>
+
+      <!-- Cột phải -->
+      <aside class="side right hide-on-mobile">
+        <div class="card">
+          <div class="card-hd">Kiểm tra dữ liệu</div>
+          <div id="qaPanel" class="qa">
+            <!-- parser QA: thống kê, cảnh báo -->
           </div>
         </div>
-        <div class="result-actions">
-          <button id="btnReplay" class="secondary">Làm lại đề này</button>
-          <button id="btnNew" class="primary">Đề mới</button>
-          <button id="btnReviewWrong" class="ghost">Xem câu sai</button>
-          <button id="btnExportCSV" class="ghost">Xuất CSV</button>
+
+        <div class="card">
+          <div class="card-hd">Lịch sử</div>
+          <div id="historyList" class="history">
+            <!-- store.js render -->
+          </div>
         </div>
-        <div id="review" class="review hidden"></div>
+      </aside>
+    </main>
+
+    <footer class="footer">
+      <div class="foot-left">
+        Made with ♥ | <a href="#" id="shareLink">Chia sẻ đề</a>
       </div>
-    </section>
-
-    <!-- ========== TAB: HISTORY ========== -->
-    <section id="tab-history" class="tab">
-      <div class="card">
-        <h2>Lịch sử làm bài</h2>
-        <div id="historyList" class="history-list"></div>
-        <div class="history-actions">
-          <button id="btnClearHistory" class="danger">Xoá toàn bộ lịch sử</button>
-        </div>
+      <div class="foot-right">
+        <button id="resetAppBtn" class="btn btn-ghost small">Đặt lại</button>
       </div>
-    </section>
+    </footer>
+  </div>
 
-    <!-- ========== TAB: QA ========== -->
-    <section id="tab-qa" class="tab">
-      <div class="card">
-        <h2>Ngân hàng câu hỏi (QA)</h2>
-        <div id="qaSummary" class="qa-summary"></div>
-        <details>
-          <summary>Chi tiết lỗi parse</summary>
-          <div id="qaDetails" class="qa-details"></div>
-        </details>
-      </div>
-    </section>
-  </main>
-
-  <!-- ====== Templates (for cloning) ====== -->
-  <template id="tplNavBtn">
-    <button class="nav-btn">1</button>
-  </template>
-  <template id="tplOption">
-    <label class="option">
-      <input type="radio" name="opt" />
-      <span class="opt-text"></span>
-    </label>
-  </template>
-
-  <footer class="app-footer">
-    <span>© Quiz Pro — chạy thuần trình duyệt, PWA offline</span>
-    <a href="#about">về sản phẩm</a>
-  </footer>
-
-  <!-- data.js (nguyên bản) phải load trước parser/app -->
+  <!-- Scripts: giữ nguyên thứ tự gọi như app cũ -->
   <script src="data.js"></script>
   <script src="parser.js"></script>
   <script src="store.js"></script>
   <script src="app.js"></script>
+  <script>
+    // Đăng ký Service Worker nếu có
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js').catch(() => {});
+    }
+
+    // Đồng bộ 2 vùng số câu (mobile <-> desktop) nếu app.js chỉ render vào 1 nơi
+    // App cũ thường render #numberNav; đoạn này sao chép qua #numberNavDesktop khi có thay đổi DOM
+    const mob = document.getElementById('numberNav');
+    const pc  = document.getElementById('numberNavDesktop');
+    const observer = new MutationObserver(() => { pc.innerHTML = mob.innerHTML; });
+    observer.observe(mob, { childList: true, subtree: true });
+  </script>
 </body>
 </html>
-
