@@ -7,7 +7,7 @@
   <!-- UI libs -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <!-- NHỚ đặt data_vip.js cùng thư mục -->
+  <!-- NHỚ đặt data.js cùng thư mục -->
   <script src="data.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
@@ -292,7 +292,7 @@
     // ---------- BOOT ----------
     (function boot(){
       if (typeof window.getTextQu!=='function' || typeof window.getTextPh!=='function'){
-        Swal.fire({icon:'error', title:'Thiếu data_vip.js', text:'Đặt data_vip.js cùng thư mục với index_vip.html'});
+        Swal.fire({icon:'error', title:'Thiếu data.js', text:'Đặt data.js cùng thư mục với index.html'});
         return;
       }
       const textQu = window.getTextQu();
