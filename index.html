@@ -76,32 +76,15 @@
   </div>
 
   <div class="container">
-    <!-- SETUP -->
     <section id="setup" class="card">
       <div style="font-weight:800;font-size:18px">Thiết lập bài tập</div>
       <div class="sub">Chọn môn, số câu, thời lượng, cách trộn… rồi bắt đầu.</div>
 
       <div class="grid two" style="margin-top:12px">
-        <div class="field">
-          <label>Môn</label>
-          <select id="selSubject"></select>
-          <div class="sub">Ngân hàng: <b id="bankCount">0</b> câu</div>
-        </div>
-        <div class="field">
-          <label>Số câu</label>
-          <input id="inpLimit" type="number" min="1" value="20">
-        </div>
-        <div class="field">
-          <label>Thời lượng (phút)</label>
-          <input id="inpMinutes" type="number" min="1" value="15">
-        </div>
-        <div class="field">
-          <label>Chế độ</label>
-          <select id="selMode">
-            <option value="exam">Kiểm tra (ẩn đáp án)</option>
-            <option value="practice">Luyện tập (phản hồi ngay)</option>
-          </select>
-        </div>
+        <div class="field"><label>Môn</label><select id="selSubject"></select><div class="sub">Ngân hàng: <b id="bankCount">0</b> câu</div></div>
+        <div class="field"><label>Số câu</label><input id="inpLimit" type="number" min="1" value="20"></div>
+        <div class="field"><label>Thời lượng (phút)</label><input id="inpMinutes" type="number" min="1" value="15"></div>
+        <div class="field"><label>Chế độ</label><select id="selMode"><option value="exam">Kiểm tra (ẩn đáp án)</option><option value="practice">Luyện tập (phản hồi ngay)</option></select></div>
       </div>
 
       <div class="row" style="margin-top:10px">
@@ -117,7 +100,6 @@
       </div>
     </section>
 
-    <!-- Sticky tools -->
     <section id="stickyTools" class="stickyNav card hidden" style="margin-top:12px">
       <div class="row">
         <span class="chip" id="progress">0/0</span>
@@ -138,12 +120,8 @@
       <div id="navGrid" class="navGrid" style="margin-top:8px"></div>
     </section>
 
-    <!-- EXAM -->
-    <section id="exam" class="hidden" style="margin-top:12px">
-      <div id="qList" class="grid"></div>
-    </section>
+    <section id="exam" class="hidden" style="margin-top:12px"><div id="qList" class="grid"></div></section>
 
-    <!-- EDITOR -->
     <section id="editor" class="card hidden" style="margin-top:12px">
       <div class="row" style="width:100%">
         <div style="font-weight:800">Soát / Đổi đáp</div>
@@ -157,7 +135,6 @@
     </section>
   </div>
 
-  <!-- Drawer -->
   <div id="drawer" class="drawer">
     <div class="mask" id="drawerMask"></div>
     <div class="panel">
@@ -170,13 +147,10 @@
   </div>
   <button id="btnOpenDrawer" class="fab btn primary hidden">☰ Danh sách</button>
 
-  <!-- TOAST -->
   <div id="toast" class="toast hidden"></div>
 
-  <!-- ==== APP ==== -->
-  <script src="./data.js"></script>
+  <script src="data.js"></script>
   <script>
-  // ===== STORAGE & HELPERS =====
   const KEYS = { SETUP:'qp_setup', HARD:'qp_hard', OVERRIDE:'qp_override' };
   const $ = sel => document.querySelector(sel);
   const save=(k,v)=>localStorage.setItem(k, JSON.stringify(v));
@@ -187,7 +161,6 @@
   const toast=msg=>{ const t=$("#toast"); t.textContent=msg; t.classList.remove('hidden'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.add('hidden'),1800); };
   const fmt=sec=>{ const m=String(Math.floor(sec/60)).padStart(2,'0'); const s=String(sec%60).padStart(2,'0'); return m+':'+s; };
 
-  // ===== ELEMENTS =====
   const el = {
     chipPhase: $("#chipPhase"), timer: $("#timer"),
     setup: $("#setup"), selSubject: $("#selSubject"), bankCount: $("#bankCount"),
@@ -203,8 +176,7 @@
     btnOpenDrawer: $("#btnOpenDrawer"), btnCloseDrawer: $("#btnCloseDrawer"),
   };
 
-  // ===== GLOBAL STATE =====
-  const BANK = []; // {id, subject, qnum, question, options[], correctIndex}
+  const BANK = [];
   const state = {
     phase:'setup', items:[], answers:new Map(), hard:new Set(), currentIndex:0,
     submitted:false, timeLeft:0, timerId:null,
@@ -212,7 +184,6 @@
     overrides:{}, filter:'all', search:'', preferHardLive:false, wrongQueue:null
   };
 
-  // ===== PARSER =====
   function parseTxt(inputText, subject){
     let text = (inputText||'').replace(/\r\n|\r/g,'\n');
     const parts = text.split(/(?=^\s*Câu\s+\d+\s*:)/m).filter(b=>/^\s*Câu\s+\d+\s*:/m.test(b));
@@ -220,16 +191,13 @@
     for(const raw of parts){
       const mQ=raw.match(/^\s*Câu\s+(\d+)\s*:\s*([\s\S]*)$/i); if(!mQ) continue;
       const qnum=parseInt(mQ[1],10), afterQ=mQ[2];
-
       const dividerRe=/^\s*Tất\s*cả\s*(?:các\s*)?đáp\s*án\s*:?.*$/mi;
       const mDiv=dividerRe.exec(afterQ);
       const before=mDiv?afterQ.slice(0,mDiv.index):afterQ;
       const optionsPart=mDiv?afterQ.slice(mDiv.index):"";
-
       const mAns=before.match(/Đáp\s*án\s*đúng\s*:\s*(.+)/i);
       const explicitCorrect=mAns?mAns[1].trim():null;
       const questionText=mAns?before.slice(0,mAns.index).trim():before.trim();
-
       const options=[]; let correctIndex=null;
       const rxOpt=/^\s*([A-Z])\.\s*(.+?)\s*$/gmi; let m;
       while((m=rxOpt.exec(optionsPart))){
@@ -240,13 +208,9 @@
         if(tick) correctIndex=options.length-1;
       }
       if(!options.length) continue;
-
       if(correctIndex==null && explicitCorrect){
         const target=normVN(explicitCorrect);
-        for(let i=0;i<options.length;i++){
-          const o=normVN(options[i]);
-          if(o.startsWith(target)||target.startsWith(o)||o===target){ correctIndex=i; break; }
-        }
+        for(let i=0;i<options.length;i++){ const o=normVN(options[i]); if(o.startsWith(target)||target.startsWith(o)||o===target){ correctIndex=i; break; } }
         if(correctIndex==null){
           const set=s=>new Set(s.split(' ').filter(Boolean));
           const interRatio=(a,b)=>{ const sa=set(normVN(a)), sb=set(normVN(b)); const inter=[...sa].filter(x=>sb.has(x)).length; const union=new Set([...sa,...sb]).size||1; return inter/union; };
@@ -255,27 +219,21 @@
         }
       }
       if(correctIndex==null) continue;
-
       items.push({id:subject+'-'+qnum, subject, qnum, question:questionText, options, correctIndex});
     }
     return items.sort((a,b)=>a.qnum-b.qnum);
   }
 
-  // ===== UI BUILD (SETUP / EDITOR / EXAM) =====
   function buildSetup(){
-    // Parse from data.js
     const rawBanks = window.quizData.getAll();
     BANK.length = 0;
     rawBanks.forEach(({subject, text}) => BANK.push(...parseTxt(text, subject)));
 
-    // Load saved state
     state.hard = new Set(Object.keys(load(KEYS.HARD, {})));
     state.overrides = load(KEYS.OVERRIDE, {});
 
-    // Subjects
     const subs = Array.from(new Set(BANK.map(x=>x.subject)));
     el.selSubject.innerHTML = `<option value="all">Tất cả</option>` + subs.map(s=>`<option>${s}</option>`).join('');
-
     Object.assign(state.setup, load(KEYS.SETUP, state.setup));
     el.selSubject.value = state.setup.subject;
     el.inpLimit.value = state.setup.limit;
@@ -284,17 +242,13 @@
     el.chkShuffleQ.checked = state.setup.shuffleQ;
     el.chkShuffleA.checked = state.setup.shuffleA;
     el.chkPreferHard.checked = state.setup.preferHard;
-
     updateBankCount(); clampLimit();
-
-    // Listeners
     el.selSubject.onchange = ()=>{ state.setup.subject=el.selSubject.value; save(KEYS.SETUP,state.setup); updateBankCount(); clampLimit(); };
     ["inpLimit","inpMinutes"].forEach(id=> el[id].oninput = ()=>{ state.setup.limit=+el.inpLimit.value||1; state.setup.minutes=+el.inpMinutes.value||1; save(KEYS.SETUP,state.setup); });
     el.selMode.onchange = ()=>{ state.setup.mode=el.selMode.value; save(KEYS.SETUP,state.setup); };
     el.chkShuffleQ.onchange = ()=>{ state.setup.shuffleQ=el.chkShuffleQ.checked; save(KEYS.SETUP,state.setup); };
     el.chkShuffleA.onchange = ()=>{ state.setup.shuffleA=el.chkShuffleA.checked; save(KEYS.SETUP,state.setup); };
     el.chkPreferHard.onchange = ()=>{ state.setup.preferHard=el.chkPreferHard.checked; save(KEYS.SETUP,state.setup); };
-
     el.btnStart.onclick = startFromSetup;
     el.btnOpenEditor.onclick = openEditor;
   }
@@ -304,7 +258,7 @@
   }
   function clampLimit(){
     const max = +el.bankCount.textContent || 0;
-    el.inpLimit.value = clamp(+el.inpLimit.value||1, 1, Math.max(1,max));
+    el.inpLimit.value = Math.max(1, Math.min(+el.inpLimit.value||1, Math.max(1,max)));
   }
 
   function applyOverrides(pool){
@@ -321,7 +275,7 @@
       pool = hard.concat(rest);
     }
     if(el.chkShuffleQ.checked) shuffle(pool);
-    const limit = clamp(+el.inpLimit.value||1, 1, pool.length);
+    const limit = Math.max(1, Math.min(+el.inpLimit.value||1, pool.length));
     startRound(pool.slice(0,limit));
   }
   function startWrongRound(ids){
@@ -339,17 +293,7 @@
     state.timeLeft = (+el.inpMinutes.value||1) * 60;
     if(state.timerId) clearInterval(state.timerId);
     tick(); state.timerId=setInterval(tick,1000);
-
-    // Switch UI
-    el.setup.classList.add('hidden');
-    el.sticky.classList.remove('hidden');
-    el.exam.classList.remove('hidden');
-    el.btnSubmit.classList.remove('hidden');
-    el.btnRestart.classList.remove('hidden');
-    el.btnOpenDrawer.classList.remove('hidden');
-    el.chipPhase.textContent="Đang làm bài";
-
-    // Sticky controls + drawer
+    el.setup.classList.add('hidden'); el.sticky.classList.remove('hidden'); el.exam.classList.remove('hidden'); el.btnSubmit.classList.remove('hidden'); el.btnRestart.classList.remove('hidden'); el.btnOpenDrawer.classList.remove('hidden'); el.chipPhase.textContent="Đang làm bài";
     el.chkPreferHardLive.onchange = ()=>{ state.preferHardLive=el.chkPreferHardLive.checked; renderNav(); renderDrawer(); };
     el.selFilter.onchange = ()=>{ state.filter=el.selFilter.value; renderNav(); renderDrawer(); };
     el.inpSearch.oninput = ()=>{ state.search=el.inpSearch.value; renderNav(); renderDrawer(); };
@@ -360,41 +304,24 @@
     $("#btnOpenDrawer").onclick = ()=>{ el.drawer.classList.add('open'); renderDrawer(); };
     $("#btnCloseDrawer").onclick = ()=> el.drawer.classList.remove('open');
     el.drawerMask.onclick = ()=> el.drawer.classList.remove('open');
-
-    renderRunHeader();
-    renderQuestions();
-    renderNav();
-    renderDrawer();
-    jumpTo(0,false);
+    renderRunHeader(); renderQuestions(); renderNav(); renderDrawer(); jumpTo(0,false);
   }
   function backToSetup(){
-    if(state.timerId) clearInterval(state.timerId);
-    state.timerId=null; state.phase='setup';
-    el.exam.classList.add('hidden'); el.sticky.classList.add('hidden');
-    el.btnSubmit.classList.add('hidden'); el.btnRestart.classList.add('hidden'); el.btnOpenDrawer.classList.add('hidden');
-    el.setup.classList.remove('hidden'); el.chipPhase.textContent="Thiết lập";
-    window.scrollTo({top:0,behavior:'smooth'});
+    if(state.timerId) clearInterval(state.timerId); state.timerId=null; state.phase='setup';
+    el.exam.classList.add('hidden'); el.sticky.classList.add('hidden'); el.btnSubmit.classList.add('hidden'); el.btnRestart.classList.add('hidden'); el.btnOpenDrawer.classList.add('hidden'); el.setup.classList.remove('hidden'); el.chipPhase.textContent="Thiết lập"; window.scrollTo({top:0,behavior:'smooth'});
   }
-
-  function renderRunHeader(){
-    el.titleRun.textContent = (el.selSubject.value==='all'?'Tất cả môn':el.selSubject.value)
-      + ' • ' + state.items.length + ' câu • ' + (el.selMode.value==='exam'?'Kiểm tra':'Luyện tập')
-      + (state.wrongQueue?' • Ôn câu sai':'');
-  }
+  function renderRunHeader(){ el.titleRun.textContent = (el.selSubject.value==='all'?'Tất cả môn':el.selSubject.value) + ' • ' + state.items.length + ' câu • ' + (el.selMode.value==='exam'?'Kiểm tra':'Luyện tập') + (state.wrongQueue?' • Ôn câu sai':''); }
   function renderQuestions(){
     el.qList.innerHTML='';
     state.items.forEach((it,idx)=>{
       const card=document.createElement('div'); card.className='qCard'; card.id='q-'+idx;
-
       const head=document.createElement('div'); head.className='qHead';
       const left=document.createElement('div'); left.innerHTML=`<div class="qTitle">Câu ${idx+1}</div><div class="sub">#${it.qnum}</div>`;
       const right=document.createElement('div');
       const star=document.createElement('button'); star.className='star'+(state.hard.has(it.id)?' active':''); star.textContent='★'; star.title='Đánh dấu câu khó';
       star.onclick=()=>{ if(state.hard.has(it.id)) state.hard.delete(it.id); else state.hard.add(it.id); const obj={}; state.hard.forEach(id=>obj[id]=true); save(KEYS.HARD,obj); star.classList.toggle('active'); renderNav(); renderDrawer(); };
       right.appendChild(star); head.appendChild(left); head.appendChild(right); card.appendChild(head);
-
       const qt=document.createElement('div'); qt.style.marginTop='6px'; qt.textContent=it.question; card.appendChild(qt);
-
       const opts=document.createElement('div'); opts.className='opts';
       it.options.forEach((txt,optI)=>{
         const id=`${it.id}-${idx}-${optI}`;
@@ -403,107 +330,38 @@
         if(state.answers.get(it.id)===optI) input.checked=true;
         if(state.submitted) input.disabled=true;
         const label=document.createElement('label'); label.setAttribute('for',id); label.textContent=txt;
-
         input.onchange=()=>{
-          state.answers.set(it.id,optI);
-          updateProgress(); renderNav(); renderDrawer();
-          if(el.selMode.value==='practice'){
-            const r=$("#res-"+idx);
-            const ok=optI===it.correctIndex;
-            r.classList.remove('hidden'); r.textContent = ok? 'Chính xác ✓' : 'Sai. Đáp án đúng: '+it.options[it.correctIndex];
-            r.classList.toggle('ok', ok); r.classList.toggle('bad', !ok);
-          }
+          state.answers.set(it.id,optI); updateProgress(); renderNav(); renderDrawer();
+          if(el.selMode.value==='practice'){ const r=$("#res-"+idx); const ok=optI===it.correctIndex; r.classList.remove('hidden'); r.textContent = ok? 'Chính xác ✓' : 'Sai. Đáp án đúng: '+it.options[it.correctIndex]; r.classList.toggle('ok', ok); r.classList.toggle('bad', !ok); }
         };
         if(state.submitted) wrap.classList.add('locked');
         wrap.appendChild(input); wrap.appendChild(label); opts.appendChild(wrap);
       });
       card.appendChild(opts);
-
       const res=document.createElement('div'); res.id='res-'+idx; res.className='result hidden'; card.appendChild(res);
-
       el.qList.appendChild(card);
     });
     updateProgress();
   }
-
-  // NAV + DRAWER
   function filteredIdx(){
-    const ids=[...state.items.keys()];
-    const q=normVN(state.search||'');
-    let arr=ids.filter(i=>{
-      const it=state.items[i];
-      if(state.filter==='answered' && !state.answers.has(it.id)) return false;
-      if(state.filter==='unanswered' && state.answers.has(it.id)) return false;
-      if(state.filter==='hard' && !state.hard.has(it.id)) return false;
-      if(q){
-        const hay=normVN(it.question+' '+it.options.join(' '));
-        if(!hay.includes(q)) return false;
-      }
-      return true;
-    });
-    if(state.preferHardLive){
-      const a=arr.filter(i=>state.hard.has(state.items[i].id));
-      const b=arr.filter(i=>!state.hard.has(state.items[i].id));
-      arr=a.concat(b);
-    }
+    const ids=[...state.items.keys()]; const q=normVN(state.search||'');
+    let arr=ids.filter(i=>{ const it=state.items[i]; if(state.filter==='answered' && !state.answers.has(it.id)) return false; if(state.filter==='unanswered' && state.answers.has(it.id)) return false; if(state.filter==='hard' && !state.hard.has(it.id)) return false; if(q){ const hay=normVN(it.question+' '+it.options.join(' ')); if(!hay.includes(q)) return false; } return true; });
+    if(state.preferHardLive){ const a=arr.filter(i=>state.hard.has(state.items[i].id)); const b=arr.filter(i=>!state.hard.has(state.items[i].id)); arr=a.concat(b); }
     return arr;
   }
   function renderNav(){
     el.navGrid.innerHTML='';
-    filteredIdx().forEach(i=>{
-      const it=state.items[i];
-      const btn=document.createElement('button'); btn.className='navBtn';
-      if(state.hard.has(it.id)) btn.classList.add('hard');
-      if(state.answers.has(it.id)) btn.classList.add('answered');
-      if(state.submitted){
-        const ok = state.answers.get(it.id)===it.correctIndex;
-        btn.classList.remove('answered'); btn.classList.add(ok?'correct':'wrong');
-      }
-      btn.textContent=String(i+1);
-      btn.onclick=()=>jumpTo(i);
-      el.navGrid.appendChild(btn);
-    });
+    filteredIdx().forEach(i=>{ const it=state.items[i]; const btn=document.createElement('button'); btn.className='navBtn'; if(state.hard.has(it.id)) btn.classList.add('hard'); if(state.answers.has(it.id)) btn.classList.add('answered'); if(state.submitted){ const ok = state.answers.get(it.id)===it.correctIndex; btn.classList.remove('answered'); btn.classList.add(ok?'correct':'wrong'); } btn.textContent=String(i+1); btn.onclick=()=>jumpTo(i); el.navGrid.appendChild(btn); });
   }
   function renderDrawer(){
     el.drawerGrid.innerHTML='';
-    filteredIdx().forEach(i=>{
-      const it=state.items[i];
-      const b=document.createElement('button'); b.className='navBtn';
-      if(state.hard.has(it.id)) b.classList.add('hard');
-      if(state.answers.has(it.id)) b.classList.add('answered');
-      if(state.submitted){ const ok=state.answers.get(it.id)===it.correctIndex; b.classList.remove('answered'); b.classList.add(ok?'correct':'wrong'); }
-      b.textContent=String(i+1);
-      b.onclick=()=>{ el.drawer.classList.remove('open'); jumpTo(i); };
-      el.drawerGrid.appendChild(b);
-    });
+    filteredIdx().forEach(i=>{ const it=state.items[i]; const b=document.createElement('button'); b.className='navBtn'; if(state.hard.has(it.id)) b.classList.add('hard'); if(state.answers.has(it.id)) b.classList.add('answered'); if(state.submitted){ const ok=state.answers.get(it.id)===it.correctIndex; b.classList.remove('answered'); b.classList.add(ok?'correct':'wrong'); } b.textContent=String(i+1); b.onclick=()=>{ el.drawer.classList.remove('open'); jumpTo(i); }; el.drawerGrid.appendChild(b); });
   }
-  function updateProgress(){
-    const total=state.items.length;
-    const ans=state.items.reduce((n,it)=>n+(state.answers.has(it.id)?1:0),0);
-    el.progress.textContent = ans+'/'+total;
-  }
-  function jumpTo(idx,smooth=true){
-    idx = Math.max(0, Math.min(idx, state.items.length-1));
-    state.currentIndex=idx;
-    const target=$("#q-"+idx);
-    if(!target) return;
-    target.classList.add('pulse');
-    target.scrollIntoView({behavior:smooth?'smooth':'auto', block:'start'});
-    setTimeout(()=>target.classList.remove('pulse'),800);
-  }
-
-  // TIMER + SUBMIT
-  function tick(){
-    el.timer.textContent=fmt(state.timeLeft);
-    if(state.timeLeft<=0){ if(state.timerId) clearInterval(state.timerId); autoSubmit(); return; }
-    state.timeLeft--;
-  }
+  function updateProgress(){ const total=state.items.length; const ans=state.items.reduce((n,it)=>n+(state.answers.has(it.id)?1:0),0); el.progress.textContent = ans+'/'+total; }
+  function jumpTo(idx,smooth=true){ idx = Math.max(0, Math.min(idx, state.items.length-1)); state.currentIndex=idx; const target=$("#q-"+idx); if(!target) return; target.classList.add('pulse'); target.scrollIntoView({behavior:smooth?'smooth':'auto', block:'start'}); setTimeout(()=>target.classList.remove('pulse'),800); }
+  function tick(){ el.timer.textContent=fmt(state.timeLeft); if(state.timeLeft<=0){ if(state.timerId) clearInterval(state.timerId); autoSubmit(); return; } state.timeLeft--; }
   function unansweredIdx(){ const miss=[]; state.items.forEach((it,i)=>{ if(!state.answers.has(it.id)) miss.push(i); }); return miss; }
-  function manualSubmit(){
-    const miss=unansweredIdx();
-    if(miss.length){ toast(`Còn ${miss.length} câu chưa làm — chuyển tới câu ${miss[0]+1}`); jumpTo(miss[0]); return; }
-    grade(false);
-  }
+  function manualSubmit(){ const miss=unansweredIdx(); if(miss.length){ toast(`Còn ${miss.length} câu chưa làm — chuyển tới câu ${miss[0]+1}`); jumpTo(miss[0]); return; } grade(false); }
   function autoSubmit(){ grade(true); }
   function grade(fromTimeout){
     state.submitted=true; if(state.timerId){ clearInterval(state.timerId); state.timerId=null; }
@@ -512,28 +370,14 @@
       const chosen=state.answers.get(it.id); const ok = chosen===it.correctIndex;
       if(ok) correct++; else wrongIds.push(it.id);
       const card=$("#q-"+i); const res=$("#res-"+i);
-      if(card){
-        card.style.boxShadow = ok? "0 0 0 1px #165b3f inset" : "0 0 0 1px #6b1f2b inset";
-        card.querySelectorAll('input[type=radio]').forEach(x=>x.disabled=true);
-        card.querySelectorAll('.opt').forEach(d=>d.classList.add('locked'));
-      }
-      if(res){
-        res.classList.remove('hidden'); res.textContent = ok? "Chính xác ✓" : "Sai. Đáp án đúng: "+it.options[it.correctIndex];
-        res.classList.toggle('ok', ok); res.classList.toggle('bad', !ok);
-      }
+      if(card){ card.style.boxShadow = ok? "0 0 0 1px #165b3f inset" : "0 0 0 1px #6b1f2b inset"; card.querySelectorAll('input[type=radio]').forEach(x=>x.disabled=true); card.querySelectorAll('.opt').forEach(d=>d.classList.add('locked')); }
+      if(res){ res.classList.remove('hidden'); res.textContent = ok? "Chính xác ✓" : "Sai. Đáp án đúng: "+it.options[it.correctIndex]; res.classList.toggle('ok', ok); res.classList.toggle('bad', !ok); }
     });
     renderNav(); renderDrawer();
     const total=state.items.length; const score=Math.round(correct/total*100);
-    if(wrongIds.length){
-      if(confirm((fromTimeout?'Hết giờ — ':'')+`Điểm ${score}/100 — Ôn lại ${wrongIds.length} câu sai?`)) startWrongRound(wrongIds);
-      else backToSetup();
-    }else{
-      alert((fromTimeout?'Hết giờ — ':'')+'Tuyệt vời! Đúng hết.');
-      backToSetup();
-    }
+    if(wrongIds.length){ if(confirm((fromTimeout?'Hết giờ — ':'')+`Điểm ${score}/100 — Ôn lại ${wrongIds.length} câu sai?`)) startWrongRound(wrongIds); else backToSetup(); }
+    else { alert((fromTimeout?'Hết giờ — ':'')+'Tuyệt vời! Đúng hết.'); backToSetup(); }
   }
-
-  // EDITOR (Đổi đáp)
   function openEditor(){
     if(!BANK.length){ toast("Chưa có dữ liệu"); return; }
     $("#setup").classList.add('hidden'); el.editor.classList.remove('hidden');
@@ -545,41 +389,27 @@
   }
   function renderEdList(){
     const subj=el.edSubject.value||'all'; const q=normVN(el.edSearch.value||'');
-    let arr=BANK.slice();
-    if(subj!=='all') arr=arr.filter(x=>x.subject===subj);
+    let arr=BANK.slice(); if(subj!=='all') arr=arr.filter(x=>x.subject===subj);
     if(q) arr=arr.filter(x=> normVN(x.question+' '+x.options.join(' ')).includes(q));
-    el.edCount.textContent='• '+arr.length+' câu';
-    el.edList.innerHTML='';
+    el.edCount.textContent='• '+arr.length+' câu'; el.edList.innerHTML='';
     arr.forEach(it=>{
-      const row=document.createElement('div'); row.className='card';
-      row.style.background="#0b111d"; row.style.borderColor="#1e2840";
-      const h=document.createElement('div'); h.className='row';
-      h.innerHTML=`<div style="font-weight:700">#${it.qnum}</div><div class="sub" style="margin-left:6px">${it.subject}</div>`;
-      row.appendChild(h);
+      const row=document.createElement('div'); row.className='card'; row.style.background="#0b111d"; row.style.borderColor="#1e2840";
+      const h=document.createElement('div'); h.className='row'; h.innerHTML=`<div style="font-weight:700">#${it.qnum}</div><div class="sub" style="margin-left:6px">${it.subject}</div>`; row.appendChild(h);
       const opts=document.createElement('div'); opts.className='grid'; opts.style.marginTop='6px';
       const current = (state.overrides[it.id]!==undefined) ? state.overrides[it.id] : it.correctIndex;
       it.options.forEach((txt,idx)=>{
-        const id='ed-'+it.id+'-'+idx;
-        const lab=document.createElement('label'); lab.className='btn ghost'; lab.style.textAlign='left';
+        const id='ed-'+it.id+'-'+idx; const lab=document.createElement('label'); lab.className='btn ghost'; lab.style.textAlign='left';
         const rd=document.createElement('input'); rd.type='radio'; rd.name='ed-'+it.id; rd.id=id; rd.value=idx; rd.checked=(idx===current);
         rd.onchange=()=>{ state.overrides[it.id]=idx; save(KEYS.OVERRIDE, state.overrides); toast('Đã đổi đáp #'+it.qnum); };
-        lab.appendChild(rd); const span=document.createElement('span'); span.textContent='  '+txt; lab.appendChild(span);
-        opts.appendChild(lab);
+        lab.appendChild(rd); const span=document.createElement('span'); span.textContent='  '+txt; lab.appendChild(span); opts.appendChild(lab);
       });
-      row.appendChild(opts);
-      el.edList.appendChild(row);
+      row.appendChild(opts); el.edList.appendChild(row);
     });
   }
-
-  // BOOT
-  function updateUIForData(){
-    const raw = window.quizData.getAll();
-    const count = raw.reduce((n,b)=> n + parseTxt(b.text,b.subject).length, 0);
-    // Xây setup sau khi có data
-    buildSetup();
-  }
-  // khởi động
-  updateUIForData();
+  function buildAll(){ buildSetup(); }
+  function updateBankCount(){ const subj=el.selSubject.value||'all'; el.bankCount.textContent = subj==='all'? BANK.length : BANK.filter(x=>x.subject===subj).length; }
+  function tickInit(){}
+  (function boot(){ buildAll(); })();
   </script>
 </body>
 </html>
