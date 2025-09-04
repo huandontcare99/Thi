@@ -6,84 +6,73 @@
   <meta name="theme-color" content="#0ea5e9" />
   <title>Quiz Master</title>
 
-  <!-- Tailwind CDN (không cần build) -->
+  <!-- Favicon inline: hết 404 -->
+  <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="%230ea5e9"/><text x="50%" y="54%" font-size="38" text-anchor="middle" fill="%23011a2b" font-family="Arial,Helvetica,sans-serif">Q</text></svg>' />
+
+  <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
-          colors: {
-            brand: { 500: '#0ea5e9', 600: '#0284c7' },
-          },
-          boxShadow: {
-            card: '0 10px 24px rgba(0,0,0,.25)',
-          },
-          borderRadius: {
-            xl2: '1rem',
-          }
+          colors: { brand: { 500:'#0ea5e9', 600:'#0284c7' } },
+          boxShadow: { card: '0 10px 24px rgba(0,0,0,.25)' }
         }
       }
     }
   </script>
 
-  <!-- CSS bổ sung: đảm bảo radio + text căn hàng đúng với mọi markup hiện có -->
+  <!-- CSS bổ sung cho đáp án / lưới số câu -->
   <link rel="stylesheet" href="tailwind-fix.css" />
 </head>
 <body class="min-h-dvh bg-slate-950 text-slate-100 antialiased">
-  <noscript class="block p-3 text-center bg-amber-500/10 text-amber-300">Ứng dụng cần bật JavaScript.</noscript>
-
   <div id="app" class="flex min-h-dvh flex-col">
-
-    <!-- HEADER (sticky, mobile-first) -->
-    <header class="sticky top-0 z-30 border-b border-slate-800 bg-slate-900/80 backdrop-blur supports-[backdrop-filter]:bg-slate-900/60">
-      <!-- brand -->
+    <!-- HEADER -->
+    <header class="sticky top-0 z-30 border-b border-slate-800 bg-slate-900/80 backdrop-blur">
       <div class="flex items-center gap-2 px-4 pt-3">
         <div class="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-brand-500 to-sky-400 font-extrabold text-slate-900">Q</div>
         <h1 class="text-lg font-semibold tracking-wide">Quiz Master</h1>
       </div>
 
-      <!-- Controls: 1 hàng cuộn trên mobile; wrap trên tablet -->
+      <!-- Hàng điều khiển: app.js sẽ fill vào các container dưới đây -->
       <div class="flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 pb-3 pt-2 md:flex-wrap md:overflow-visible">
-        <label class="grid min-w-[150px] snap-start gap-1">
+        <div class="grid min-w-[150px] snap-start gap-1">
           <span class="text-xs text-slate-400">Môn</span>
-          <select id="subjectSelect" class="h-10 rounded-xl border border-slate-800 bg-slate-900 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/40"></select>
-        </label>
+          <!-- app.js tìm #subjectSelect: cung cấp sẵn thẻ select trống -->
+          <select id="subjectSelect" class="h-10 rounded-xl border border-slate-800 bg-slate-900 px-3 text-sm"></select>
+        </div>
 
-        <label class="grid min-w-[140px] snap-start gap-1">
+        <div class="grid min-w-[140px] snap-start gap-1">
           <span class="text-xs text-slate-400">Chế độ</span>
-          <select id="modeSelect" class="h-10 rounded-xl border border-slate-800 bg-slate-900 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/40">
+          <select id="modeSelect" class="h-10 rounded-xl border border-slate-800 bg-slate-900 px-3 text-sm">
             <option value="practice">Luyện</option>
             <option value="exam">Thi</option>
           </select>
-        </label>
+        </div>
 
-        <label class="grid min-w-[110px] snap-start gap-1">
+        <div class="grid min-w-[110px] snap-start gap-1">
           <span class="text-xs text-slate-400">Số câu</span>
-          <input id="questionCount" type="number" min="1" max="500" step="1" placeholder="VD: 20"
-                 class="h-10 rounded-xl border border-slate-800 bg-slate-900 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/40" />
-        </label>
+          <input id="questionCount" type="number" min="1" max="500" class="h-10 rounded-xl border border-slate-800 bg-slate-900 px-3 text-sm" />
+        </div>
 
-        <label class="grid min-w-[110px] snap-start gap-1">
+        <div class="grid min-w-[110px] snap-start gap-1">
           <span class="text-xs text-slate-400">Phút</span>
-          <input id="duration" type="number" min="0" max="999" step="1" placeholder="0 = không giới hạn"
-                 class="h-10 rounded-xl border border-slate-800 bg-slate-900 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/40" />
-        </label>
+          <input id="duration" type="number" min="0" max="999" class="h-10 rounded-xl border border-slate-800 bg-slate-900 px-3 text-sm" />
+        </div>
 
         <label class="inline-flex min-w-max snap-start items-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-3 text-sm">
           <input id="shuffleToggle" type="checkbox" class="h-5 w-5 accent-sky-500" />
           <span>Đảo đáp án</span>
         </label>
 
-        <label class="grid min-w-[150px] snap-start gap-1">
+        <div class="grid min-w-[150px] snap-start gap-1">
           <span class="text-xs text-slate-400">Seed</span>
-          <input id="seed" type="text" inputmode="numeric" placeholder="Tự sinh nếu trống"
-                 class="h-10 rounded-xl border border-slate-800 bg-slate-900 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/40" />
-        </label>
+          <input id="seed" type="text" inputmode="numeric" class="h-10 rounded-xl border border-slate-800 bg-slate-900 px-3 text-sm" />
+        </div>
 
         <div class="flex min-w-max snap-start items-center gap-2">
           <button id="startBtn" class="h-10 rounded-xl bg-gradient-to-b from-brand-500 to-brand-600 px-4 font-semibold text-slate-950 shadow-card">Bắt đầu</button>
           <button id="resumeBtn" hidden class="h-10 rounded-xl border border-slate-800 bg-slate-900 px-4">Tiếp tục</button>
-          <button id="installBtn" class="h-10 rounded-xl border border-slate-800 bg-transparent px-3" title="Cài ứng dụng" aria-label="Cài ứng dụng">Cài</button>
         </div>
       </div>
 
@@ -99,7 +88,7 @@
       </div>
     </header>
 
-    <!-- NAV (mobile drawer) -->
+    <!-- Drawer mobile -->
     <details id="navDrawer" class="m-4 rounded-2xl border border-slate-800 bg-slate-900 md:hidden">
       <summary class="cursor-pointer list-none p-3 font-semibold">Danh sách câu hỏi</summary>
       <div class="border-t border-slate-800 p-3">
@@ -107,10 +96,8 @@
       </div>
     </details>
 
-    <!-- MAIN LAYOUT -->
+    <!-- MAIN -->
     <main class="mx-auto w-full max-w-[1200px] grid-cols-1 gap-4 p-4 md:grid md:grid-cols-[260px_minmax(0,1fr)] lg:grid-cols-[260px_minmax(0,1fr)_320px]">
-
-      <!-- Left (hide on mobile) -->
       <aside class="hidden md:block md:space-y-4">
         <div class="rounded-2xl border border-slate-800 bg-slate-900 shadow-card">
           <div class="border-b border-slate-800 p-3 font-bold">Danh sách câu</div>
@@ -118,14 +105,12 @@
             <div id="numberNavDesktop" class="num-grid grid grid-cols-6 gap-2"></div>
           </div>
         </div>
-
         <div class="rounded-2xl border border-slate-800 bg-slate-900 shadow-card">
           <div class="border-b border-slate-800 p-3 font-bold">Seed hiện tại</div>
           <div id="seedBox" class="p-3 font-mono text-sm text-slate-300">—</div>
         </div>
       </aside>
 
-      <!-- Center -->
       <section class="space-y-4">
         <article id="questionCard" class="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-card" aria-live="polite">
           <div class="mb-2 flex items-center justify-between gap-2">
@@ -137,13 +122,11 @@
           </div>
 
           <div id="questionText" class="pb-3 text-lg leading-relaxed">Nhấn “Bắt đầu” để vào đề.</div>
-
-          <!-- UL do app.js render đáp án -->
           <ul id="answers" class="space-y-3" role="listbox" aria-label="Đáp án"></ul>
         </article>
 
-        <!-- Actions (sticky bottom on mobile) -->
-        <div class="sticky bottom-[env(safe-area-inset-bottom,0px)] z-20 grid grid-cols-4 gap-2 rounded-2xl border border-slate-800 bg-slate-900/95 p-2 backdrop-blur md:static md:bg-transparent md:p-0 md:backdrop-blur-0">
+        <!-- Nút điều hướng -->
+        <div class="sticky bottom-[env(safe-area-inset-bottom,0px)] z-20 grid grid-cols-4 gap-2 rounded-2xl border border-slate-800 bg-slate-900/95 p-2 backdrop-blur md:static md:bg-transparent md:p-0">
           <button id="prevBtn" class="h-10 rounded-xl border border-slate-800 bg-slate-900 disabled:opacity-50" disabled>◀ Trước</button>
           <button id="clearBtn" class="h-10 rounded-xl border border-slate-800 bg-transparent disabled:opacity-50" disabled>Xóa chọn</button>
           <button id="markBtn" class="h-10 rounded-xl border border-slate-800 bg-transparent disabled:opacity-50" disabled>Đánh dấu</button>
@@ -159,13 +142,11 @@
         <section id="resultPanel" class="rounded-2xl border border-slate-800 bg-slate-900 p-4" hidden></section>
       </section>
 
-      <!-- Right (only desktop) -->
       <aside class="hidden lg:block lg:space-y-4">
         <div class="rounded-2xl border border-slate-800 bg-slate-900 shadow-card">
           <div class="border-b border-slate-800 p-3 font-bold">Kiểm tra dữ liệu</div>
           <div id="qaPanel" class="p-3 text-sm"></div>
         </div>
-
         <div class="rounded-2xl border border-slate-800 bg-slate-900 shadow-card">
           <div class="border-b border-slate-800 p-3 font-bold">Lịch sử</div>
           <div id="historyList" class="p-3 text-sm"></div>
@@ -181,21 +162,10 @@
     </footer>
   </div>
 
-  <!-- Scripts (giữ nguyên) -->
-  <script src="data.js"></script>
-  <script src="parser.js"></script>
-  <script src="store.js"></script>
-  <script src="app.js"></script>
-
-  <!-- Sync nav (nếu app chỉ render #numberNav) -->
-  <script>
-    const mob = document.getElementById('numberNav');
-    const pc  = document.getElementById('numberNavDesktop');
-    if (mob && pc) {
-      const sync = () => { pc.innerHTML = mob.innerHTML; };
-      new MutationObserver(sync).observe(mob, { childList: true, subtree: true });
-      sync();
-    }
-  </script>
+  <!-- NẠP JS: dùng DEFER để chắc chắn DOM có trước khi app.js chạy -->
+  <script defer src="data.js"></script>
+  <script defer src="parser.js"></script>
+  <script defer src="store.js"></script>
+  <script defer src="app.js"></script>
 </body>
 </html>
