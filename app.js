@@ -1,76 +1,62 @@
-/* Quiz Master - app.js
- * Mobile-first, không phụ thuộc parser ngoài.
- * Chỉ cần data.js (window.quizData.getAll()).
- */
+/* Quiz Master - app.js (mobile-first, chắc chắn không null DOM) */
 (() => {
   "use strict";
-
-  // ====== Helpers ======
   const $ = (id) => document.getElementById(id);
-  const escapeTxt = (s) => (s == null ? "" : String(s));
-  const norm = (s) =>
-    escapeTxt(s)
-      .toLowerCase()
-      .replace(/\s+/g, " ")
-      .replace(/[.]+$/g, "")
-      .trim();
-
-  // Robust guard: chỉ lấy element khi đã có DOM
-  document.addEventListener("DOMContentLoaded", init);
 
   const state = {
-    bank: [], // [{subject, questions:[{q, opts:[{t,letter}], correct}]}]
+    bank: [],          // [{subject, questions:[{q, opts:[{t,letter}], correct}]}]
     questions: [],
-    order: [],
     pickCount: 0,
     current: 0,
-    answers: {}, // idx -> optIndex
+    answers: {},       // idx -> optIndex
     marked: new Set(),
-    started: false,
     mode: "practice",
     timerId: null,
-    endAt: 0,
+    endAt: 0
   };
 
-  // ====== Parse raw text from data.js ======
-  function parseSubject(rawText, subjectName) {
-    const text = String(rawText || "");
+  document.addEventListener("DOMContentLoaded", init);
+
+  // ---------- PARSER ----------
+  function parseSubject(raw, subjectName) {
+    const text = String(raw || "");
     const blocks = [];
-    const re = /Câu\s+\d+:[\s\S]*?(?=^\-+|\u2014{3,}|$)/gim; // tới dòng gạch ---------- hoặc hết
+    // Cắt từng "Câu ... ----" (dấu gạch dài trong file của bạn)
+    const re = /(^|\n)Câu\s+\d+:[\s\S]*?(?=\n[-=]{6,}\s*\n|$)/gim;
     let m;
-    while ((m = re.exec(text)) !== null) blocks.push(m[0]);
+    while ((m = re.exec(text)) !== null) {
+      blocks.push(m[0]);
+    }
 
     const questions = blocks.map((blk) => {
-      // Question
-      let qMatch = blk.match(/^Câu\s+\d+:\s*([\s\S]*?)\s*Đáp án đúng:/im);
-      const q = qMatch ? qMatch[1].trim() : blk.trim();
+      // Lấy câu hỏi
+      const qm = blk.match(/^Câu\s+\d+:\s*([\s\S]*?)\s*Đáp án đúng:/im);
+      const q = (qm ? qm[1] : blk).trim();
 
-      // Correct text (fallback)
-      let aTxt = "";
-      const ansLine = blk.match(/Đáp án đúng:\s*([\s\S]*?)(?:\n|$)/i);
-      if (ansLine) aTxt = ansLine[1].trim();
-
-      // Options
+      // Lấy options A-D
       const opts = [];
       let correct = -1;
-      const optRe = /^\s*([ABCD])\.\s*(?:✓\s*)?(.+?)\s*$/gim;
-      let mo;
-      while ((mo = optRe.exec(blk)) !== null) {
-        const letter = mo[1].toUpperCase();
-        const text = mo[2].replace(/\s+/g, " ").trim();
-        // Dòng thực sự đúng thường có ký hiệu ✓. Ta cũng đối chiếu với "Đáp án đúng:"
-        const hadCheck = /([ABCD])\.\s*✓/i.test(mo[0]);
-        opts.push({ t: text, letter });
-        if (hadCheck) correct = opts.length - 1;
+      const optRe = /^\s*([ABCD])\.\s*(.*)$/gim;
+      let om;
+      while ((om = optRe.exec(blk)) !== null) {
+        let letter = om[1].toUpperCase();
+        let textLine = om[2].trim();
+        const hasTick = /✓/.test(textLine);
+        textLine = textLine.replace(/^✓\s*/,"").replace(/\s*✓\s*$/,"").trim();
+        opts.push({ t: textLine, letter });
+        if (hasTick) correct = opts.length - 1;
       }
 
-      if (correct < 0 && aTxt && opts.length) {
-        const needle = norm(aTxt);
-        const idx = opts.findIndex((o) => norm(o.t) === needle);
-        if (idx >= 0) correct = idx;
+      // Nếu chưa thấy ✓, đối chiếu "Đáp án đúng:"
+      if (correct < 0) {
+        const line = blk.match(/Đáp án đúng:\s*([\s\S]*?)(?:\n|$)/i);
+        if (line) {
+          const needle = normalize(line[1]);
+          const idx = opts.findIndex((o) => normalize(o.t) === needle);
+          if (idx >= 0) correct = idx;
+        }
       }
-      // Nếu vẫn chưa xác định được, mặc định 0 để không crash
-      if (correct < 0) correct = 0;
+      if (correct < 0) correct = 0; // fallback an toàn
 
       return { q, opts, correct };
     });
@@ -78,74 +64,75 @@
     return { subject: subjectName, questions };
   }
 
-  // ====== UI Build ======
+  const normalize = (s) =>
+    String(s || "")
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .replace(/[.]+$/g, "")
+      .trim();
+
+  // ---------- UI BUILD ----------
   function buildSubjectSelect() {
     const sel = $("subject");
-    if (!sel) return;
     sel.innerHTML = "";
     state.bank.forEach((b, i) => {
       const opt = document.createElement("option");
-      opt.value = String(i);
+      opt.value = i;
       opt.textContent = `${b.subject} (${b.questions.length} câu)`;
       sel.appendChild(opt);
     });
   }
 
   function buildNumberGrid() {
-    const makeBtn = (idx) => {
+    const makeBtn = (i) => {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className =
         "num w-10 h-10 rounded-xl border border-slate-800 bg-slate-900 text-sm";
-      btn.textContent = String(idx + 1);
-      btn.dataset.idx = String(idx);
-      btn.onclick = () => goTo(idx);
+      btn.textContent = i + 1;
+      btn.dataset.idx = i;
+      btn.addEventListener("click", () => goTo(i));
       return btn;
     };
-
-    const grids = [$("numberGrid"), $("numberGridMobile")].filter(Boolean);
-    grids.forEach((root) => {
+    const areas = [$("numberGrid"), $("numberGridMobile")].filter(Boolean);
+    areas.forEach((root) => {
       root.innerHTML = "";
       for (let i = 0; i < state.pickCount; i++) root.appendChild(makeBtn(i));
     });
   }
 
   function paintNumberGrid() {
-    const markAnswered = (btn, i) => {
-      const answered = state.answers[i] != null;
-      btn.classList.toggle("answered", answered);
+    const buttons = document.querySelectorAll("#numberGrid .num, #numberGridMobile .num");
+    buttons.forEach((btn) => {
+      const i = Number(btn.dataset.idx);
       btn.classList.toggle("current", i === state.current);
+      btn.classList.toggle("answered", state.answers[i] != null);
       btn.classList.toggle("marked", state.marked.has(i));
-    };
-    document
-      .querySelectorAll("#numberGrid .num, #numberGridMobile .num")
-      .forEach((btn) => {
-        const i = Number(btn.dataset.idx);
-        markAnswered(btn, i);
-      });
+    });
   }
 
   function renderQuestion() {
     const idx = state.current;
-    const { q, opts } = state.questions[idx];
+    const q = state.questions[idx];
+    if (!q) return;
 
     $("qIndex").textContent = `Câu ${idx + 1}/${state.pickCount}`;
-    $("question").textContent = q;
+    $("question").textContent = q.q;
 
     const ul = $("answers");
     ul.innerHTML = "";
-    opts.forEach((op, i) => {
+    q.opts.forEach((op, i) => {
+      const id = `q${idx}_opt${i}`;
       const li = document.createElement("li");
       li.className = "ans";
-      const id = `q${idx}_opt${i}`;
 
+      // dùng input ẩn (nhưng vẫn focusable) + label clickable
       li.innerHTML = `
-        <input id="${id}" type="radio" name="q${idx}" class="peer sr-only" />
+        <input id="${id}" type="radio" name="q${idx}" class="peer absolute opacity-0" />
         <label for="${id}" class="ans-label">
-          <span class="letter">${op.letter}.</span>
+          <span class="letter">${op.letter}</span>
           <span class="text"></span>
-        </label>
-      `;
+        </label>`;
       li.querySelector(".text").textContent = op.t;
       ul.appendChild(li);
 
@@ -160,8 +147,8 @@
     // khôi phục lựa chọn nếu có
     const chosen = state.answers[idx];
     if (chosen != null) {
-      const input = document.getElementById(`q${idx}_opt${chosen}`);
-      if (input) input.checked = true;
+      const inp = document.getElementById(`q${idx}_opt${chosen}`);
+      if (inp) inp.checked = true;
       $("clear").disabled = false;
     } else {
       $("clear").disabled = true;
@@ -170,24 +157,21 @@
     $("prev").disabled = idx === 0;
     $("next").disabled = idx >= state.pickCount - 1;
     $("mark").disabled = false;
-
     paintNumberGrid();
   }
 
   function updateBadges() {
-    const sb = $("subjectBadge");
-    const mb = $("modeBadge");
-    sb.textContent = state.bank[$("subject").value]?.subject || "—";
-    mb.textContent = $("mode").value === "exam" ? "Thi" : "Luyện tập";
+    const selIdx = Number($("subject").value || 0);
+    $("subjectBadge").textContent = state.bank[selIdx]?.subject || "—";
+    $("modeBadge").textContent = $("mode").value === "exam" ? "Thi" : "Luyện tập";
   }
 
   function updateProgress() {
     const answered = Object.keys(state.answers).length;
     const total = state.pickCount;
     $("progressText").textContent = `${answered}/${total}`;
-    const pct = total > 0 ? Math.round((answered / total) * 100) : 0;
+    const pct = total ? Math.round((answered / total) * 100) : 0;
     $("progressBar").style.width = pct + "%";
-
     $("submit").disabled = answered === 0;
   }
 
@@ -219,29 +203,28 @@
     state.timerId = setInterval(tick, 1000);
   }
 
-  // ====== Actions ======
+  // ---------- ACTIONS ----------
   function start() {
-    // lấy bank theo subject
     const sbIdx = Number($("subject").value || 0);
     const bank = state.bank[sbIdx];
-    if (!bank || !bank.questions.length) return;
+    if (!bank || !bank.questions.length) {
+      $("question").textContent = "Không tìm thấy câu hỏi trong dữ liệu.";
+      $("answers").innerHTML = "";
+      return;
+    }
 
-    const count = Math.max(
-      1,
-      Math.min(Number($("count").value || bank.questions.length), bank.questions.length)
-    );
+    const reqCount = Number($("count").value || bank.questions.length);
+    const count = Math.max(1, Math.min(reqCount, bank.questions.length));
 
-    // clone & shuffle bank
+    // Clone + trộn (nếu chọn)
     let qs = bank.questions.slice();
-    if ($("shuffle").checked) qs = shuffle(qs.map((x) => cloneAndShuffleOpts(x)));
+    if ($("shuffle").checked) qs = shuffle(qs.map(shuffleOptions));
 
     state.questions = qs.slice(0, count);
     state.pickCount = state.questions.length;
-    state.order = [...Array(state.pickCount).keys()];
     state.current = 0;
     state.answers = {};
     state.marked.clear();
-    state.started = true;
     state.mode = $("mode").value;
 
     updateBadges();
@@ -249,10 +232,7 @@
     updateProgress();
     renderQuestion();
 
-    ["next", "prev", "clear", "mark", "submit"].forEach((id) => {
-      $(id).disabled = false;
-    });
-
+    ["next","prev","clear","mark","submit"].forEach(id => $(id).disabled = false);
     startTimer(Number($("duration").value || 0));
     $("result").hidden = true;
     $("retry").hidden = true;
@@ -260,8 +240,8 @@
   }
 
   function clearChoice() {
-    const idx = state.current;
-    delete state.answers[idx];
+    const i = state.current;
+    delete state.answers[i];
     renderQuestion();
     updateProgress();
   }
@@ -273,18 +253,12 @@
     paintNumberGrid();
   }
 
-  function next() {
-    if (state.current < state.pickCount - 1) goTo(state.current + 1);
-  }
-  function prev() {
-    if (state.current > 0) goTo(state.current - 1);
-  }
+  function next() { if (state.current < state.pickCount - 1) goTo(state.current + 1); }
+  function prev() { if (state.current > 0) goTo(state.current - 1); }
 
   function finish(showWrongOnly = false) {
-    if (!state.started) return;
     if (state.timerId) clearInterval(state.timerId);
 
-    // chấm điểm
     let correct = 0;
     const rows = [];
     state.questions.forEach((q, i) => {
@@ -294,25 +268,17 @@
       if (!showWrongOnly || !ok) {
         rows.push(
           `<div class="mb-3 rounded-xl border border-slate-800 bg-slate-900 p-3">
-             <div class="mb-2 text-sm text-slate-400">Câu ${i + 1}</div>
-             <div class="mb-2">${escapeTxt(q.q)}</div>
-             <ul class="space-y-1 text-sm">
-               ${q.opts
-                 .map((op, idx) => {
-                   const isC = idx === q.correct;
-                   const isU = idx === chosen;
-                   const cls = isC
-                     ? "badge-correct"
-                     : isU
-                       ? "badge-wrong"
-                       : "badge-ghost";
-                   return `<li><span class="${cls}">${op.letter}</span> ${escapeTxt(
-                     op.t
-                   )}</li>`;
-                 })
-                 .join("")}
-             </ul>
-           </div>`
+            <div class="mb-2 text-sm text-slate-400">Câu ${i + 1}</div>
+            <div class="mb-2">${escapeHtml(q.q)}</div>
+            <ul class="space-y-1 text-sm">
+              ${q.opts.map((op, idx) => {
+                const isC = idx === q.correct;
+                const isU = idx === chosen;
+                const cls = isC ? "badge-correct" : isU ? "badge-wrong" : "badge-ghost";
+                return `<li><span class="${cls}">${op.letter}</span> ${escapeHtml(op.t)}</li>`;
+              }).join("")}
+            </ul>
+          </div>`
         );
       }
     });
@@ -333,10 +299,7 @@
     $("retry").hidden = false;
     $("reviewWrong").hidden = false;
 
-    // khóa điều khiển để không “tự load đề mới”
-    ["next", "prev", "clear", "mark", "submit"].forEach((id) => {
-      $(id).disabled = true;
-    });
+    ["next","prev","clear","mark","submit"].forEach(id => $(id).disabled = true);
   }
 
   function retry() {
@@ -344,7 +307,7 @@
     start();
   }
 
-  // ====== Utils ======
+  // ---------- UTILS ----------
   function shuffle(arr) {
     for (let i = arr.length - 1; i > 0; i--) {
       const j = (Math.random() * (i + 1)) | 0;
@@ -352,42 +315,40 @@
     }
     return arr;
   }
-  function cloneAndShuffleOpts(q) {
-    const c = { q: q.q, opts: q.opts.map((o) => ({ ...o })), correct: q.correct };
-    // ghi nhớ đáp án đúng theo hoán vị
-    const order = [...Array(c.opts.length).keys()];
+  function shuffleOptions(q) {
+    const copy = { q: q.q, opts: q.opts.map(o => ({...o})), correct: q.correct };
+    const order = [...Array(copy.opts.length).keys()];
     shuffle(order);
-    const newOpts = order.map((i) => c.opts[i]);
-    const newCorrect = order.indexOf(c.correct);
-    c.opts = newOpts;
-    c.correct = newCorrect;
-    return c;
+    const newOpts = order.map(i => copy.opts[i]);
+    const newCorrect = order.indexOf(copy.correct);
+    copy.opts = newOpts;
+    copy.correct = newCorrect;
+    return copy;
   }
 
-  // ====== Init ======
+  const escapeHtml = (s) => String(s || "")
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+  // ---------- INIT ----------
   function init() {
-    // Lấy data từ data.js
     const all = (window.quizData && window.quizData.getAll && window.quizData.getAll()) || [];
     state.bank = all.map((it) => parseSubject(it.text, it.subject));
 
-    // Build subject select
     buildSubjectSelect();
-    // Prefill
     $("subject").value = "0";
-    $("count").value = String(state.bank[0]?.questions.length || 50);
+    $("count").value = String(state.bank[0]?.questions.length || 1);
     updateBadges();
 
-    // Bind events
     $("subject").addEventListener("change", () => {
-      $("count").value = String(
-        state.bank[$("subject").value]?.questions.length || 1
-      );
+      const idx = Number($("subject").value || 0);
+      $("count").value = String(state.bank[idx]?.questions.length || 1);
       updateBadges();
     });
     $("mode").addEventListener("change", updateBadges);
+
     $("start").addEventListener("click", start);
-    $("next").addEventListener("click", next);
-    $("prev").addEventListener("click", prev);
+    $("next").addEventListener("click", () => next());
+    $("prev").addEventListener("click", () => prev());
     $("clear").addEventListener("click", clearChoice);
     $("mark").addEventListener("click", toggleMark);
     $("submit").addEventListener("click", () => finish(false));
