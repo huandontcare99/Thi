@@ -1,20 +1,3 @@
-<!--
-📦 Quiz Pro UI — giữ nguyên data.js
-- Đặt các file này cùng thư mục với data.js của bạn.
-- KHÔNG sửa data.js. Chỉ thêm các file bên dưới.
-- Mở index.html để chạy. Có PWA (offline), seed, lịch sử, QA, practice/exam, progress bar, phím tắt.
-
-Cấu trúc:
-  index.html
-  styles.css
-  parser.js
-  store.js
-  app.js
-  manifest.json
-  service-worker.js
-  data.js   (giữ nguyên như bạn cung cấp)
-
--->
 
 <!-- ======================== index.html ======================== -->
 <!DOCTYPE html>
@@ -24,8 +7,8 @@ Cấu trúc:
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Quiz Pro — Luyện/Thi trắc nghiệm</title>
   <meta name="theme-color" content="#111827" />
-  <link rel="manifest" href="./manifest.json" />
-  <link rel="stylesheet" href="./styles.css" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header class="app-header">
@@ -194,10 +177,10 @@ Cấu trúc:
   </footer>
 
   <!-- data.js (nguyên bản) phải load trước parser/app -->
-  <script src="./data.js"></script>
-  <script src="./parser.js"></script>
-  <script src="./store.js"></script>
-  <script src="./app.js"></script>
+  <script src="data.js"></script>
+  <script src="parser.js"></script>
+  <script src="store.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
 
