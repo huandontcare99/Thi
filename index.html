@@ -4,35 +4,26 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#0ea5e9" />
-  <title>Quiz | Luyện & Thi</title>
+  <title>Quiz Master</title>
 
-  <!-- Manifest (nếu bạn đã có) -->
-  <link rel="manifest" href="manifest.json" />
-
-  <!-- CSS mới -->
   <link rel="stylesheet" href="styles.css" />
-
-  <!-- Preload nhẹ để font hệ thống render nhanh, không cần tải webfont -->
-  <meta http-equiv="x-dns-prefetch-control" content="on" />
 </head>
 <body>
   <noscript>Ứng dụng cần bật JavaScript.</noscript>
 
   <div id="app" class="app">
-    <!-- TOP BAR -->
+    <!-- HEADER (sticky, mobile-first) -->
     <header class="topbar" role="banner">
       <div class="brand">
         <div class="logo" aria-hidden="true">Q</div>
         <h1 class="title">Quiz Master</h1>
       </div>
 
-      <!-- Cụm điều khiển chính -->
-      <div class="controls">
+      <!-- Cụm điều khiển: 1 hàng cuộn ngang trên mobile, grid trên tablet -->
+      <div class="controls" role="group" aria-label="Thiết lập đề">
         <label class="ctrl">
           <span>Môn</span>
-          <select id="subjectSelect" class="input">
-            <!-- app.js sẽ fill từ data.js -->
-          </select>
+          <select id="subjectSelect" class="input"></select>
         </label>
 
         <label class="ctrl">
@@ -43,13 +34,13 @@
           </select>
         </label>
 
-        <label class="ctrl small">
+        <label class="ctrl xs">
           <span>Số câu</span>
-          <input id="questionCount" type="number" min="1" max="300" step="1" class="input" placeholder="VD: 20" />
+          <input id="questionCount" type="number" min="1" max="500" step="1" class="input" placeholder="VD: 20" />
         </label>
 
-        <label class="ctrl small">
-          <span>Thời gian (phút)</span>
+        <label class="ctrl xs">
+          <span>Phút</span>
           <input id="duration" type="number" min="0" max="999" step="1" class="input" placeholder="0 = không giới hạn" />
         </label>
 
@@ -58,75 +49,66 @@
           <span>Đảo đáp án</span>
         </label>
 
-        <label class="ctrl">
+        <label class="ctrl sm">
           <span>Seed</span>
-          <input id="seed" type="text" class="input" placeholder="Tự điền nếu để trống" inputmode="numeric" />
+          <input id="seed" type="text" class="input" placeholder="Tự sinh nếu trống" inputmode="numeric" />
         </label>
 
         <button id="startBtn" class="btn btn-primary">Bắt đầu</button>
         <button id="resumeBtn" class="btn" hidden>Tiếp tục</button>
-
-        <button id="installBtn" class="btn btn-ghost" title="Cài ứng dụng" aria-label="Cài ứng dụng">
-          Cài ứng dụng
-        </button>
+        <button id="installBtn" class="btn btn-ghost" title="Cài ứng dụng" aria-label="Cài ứng dụng">Cài</button>
       </div>
 
-      <!-- Thanh tiến trình sticky -->
-      <div class="progress" role="progressbar" aria-label="Tiến độ làm bài" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <!-- Thanh tiến trình (sticky) -->
+      <div class="progress" role="progressbar" aria-label="Tiến độ" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
         <div id="progressBar" class="progress-bar" style="width:0%"></div>
-        <div class="progress-text">
-          <span id="progressText">0/0</span>
-          <span id="timer" class="timer" aria-live="polite">00:00</span>
+        <div class="progress-info">
+          <span id="progressText" class="muted">0/0</span>
+          <span id="timer" class="timer">00:00</span>
         </div>
       </div>
     </header>
 
-    <!-- NAV MOBILE COLLAPSIBLE -->
+    <!-- DRAWER số câu cho mobile -->
     <details class="drawer nav-drawer" id="navDrawer">
       <summary>Danh sách câu hỏi</summary>
       <div class="drawer-body">
-        <div id="numberNav" class="num-grid" role="navigation" aria-label="Điều hướng câu hỏi">
-          <!-- app.js sẽ render các nút số câu -->
-        </div>
+        <div id="numberNav" class="num-grid" role="navigation" aria-label="Điều hướng câu"></div>
       </div>
     </details>
 
-    <!-- LAYOUT CHÍNH -->
+    <!-- LAYOUT CHÍNH (mobile 1 cột; tablet: +left; desktop: +right) -->
     <main class="layout" role="main">
-      <!-- Cột trái (PC/Tablet) -->
+      <!-- Cột trái (ẩn trên mobile) -->
       <aside class="side left hide-on-mobile">
         <div class="card">
           <div class="card-hd">Danh sách câu</div>
-          <div id="numberNavDesktop" class="num-grid" role="navigation" aria-label="Điều hướng câu hỏi (desktop)"></div>
+          <div id="numberNavDesktop" class="num-grid" role="navigation" aria-label="Điều hướng câu (desktop)"></div>
         </div>
 
         <div class="card">
           <div class="card-hd">Seed hiện tại</div>
-          <div id="seedBox" class="mono"></div>
+          <div id="seedBox" class="mono small-pad">—</div>
         </div>
       </aside>
 
-      <!-- Trung tâm: Vùng câu hỏi -->
+      <!-- Trung tâm: vùng câu hỏi -->
       <section class="center">
         <article class="question" id="questionCard" aria-live="polite">
           <div class="q-hd">
             <div class="badges">
               <span id="subjectBadge" class="badge">—</span>
-              <span id="modeBadge" class="badge badge-soft">—</span>
+              <span id="modeBadge" class="badge soft">—</span>
             </div>
             <div id="qIndex" class="q-index">Câu —</div>
           </div>
 
-          <div id="questionText" class="q-text">
-            Chọn “Bắt đầu” để vào đề.
-          </div>
+          <div id="questionText" class="q-text">Nhấn “Bắt đầu” để vào đề.</div>
 
-          <ul id="answers" class="answers" role="listbox" aria-label="Danh sách đáp án">
-            <!-- app.js render các đáp án (radio) -->
-          </ul>
+          <ul id="answers" class="answers" role="listbox" aria-label="Đáp án"></ul>
         </article>
 
-        <!-- Hàng nút điều hướng (sticky ở mobile) -->
+        <!-- Hành động (sticky dưới cùng trên mobile) -->
         <div class="actions">
           <button id="prevBtn" class="btn" disabled>◀ Trước</button>
           <button id="clearBtn" class="btn btn-ghost" disabled>Xóa chọn</button>
@@ -140,32 +122,26 @@
           <button id="exportCsvBtn" class="btn btn-ghost" hidden>Xuất CSV</button>
         </div>
 
-        <section id="resultPanel" class="result" hidden>
-          <!-- app.js sẽ đổ kết quả -->
-        </section>
+        <section id="resultPanel" class="result" hidden></section>
       </section>
 
-      <!-- Cột phải -->
-      <aside class="side right hide-on-mobile">
+      <!-- Cột phải (ẩn trên tablet; hiện trên desktop) -->
+      <aside class="side right hide-on-tablet">
         <div class="card">
           <div class="card-hd">Kiểm tra dữ liệu</div>
-          <div id="qaPanel" class="qa">
-            <!-- parser QA: thống kê, cảnh báo -->
-          </div>
+          <div id="qaPanel" class="panel-body"></div>
         </div>
 
         <div class="card">
           <div class="card-hd">Lịch sử</div>
-          <div id="historyList" class="history">
-            <!-- store.js render -->
-          </div>
+          <div id="historyList" class="panel-body"></div>
         </div>
       </aside>
     </main>
 
     <footer class="footer">
       <div class="foot-left">
-        Made with ♥ | <a href="#" id="shareLink">Chia sẻ đề</a>
+        <a href="#" id="shareLink">Chia sẻ đề</a>
       </div>
       <div class="foot-right">
         <button id="resetAppBtn" class="btn btn-ghost small">Đặt lại</button>
@@ -173,23 +149,20 @@
     </footer>
   </div>
 
-  <!-- Scripts: giữ nguyên thứ tự gọi như app cũ -->
+  <!-- Scripts (giữ nguyên app cũ) -->
   <script src="data.js"></script>
   <script src="parser.js"></script>
   <script src="store.js"></script>
   <script src="app.js"></script>
   <script>
-    // Đăng ký Service Worker nếu có
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js').catch(() => {});
-    }
-
-    // Đồng bộ 2 vùng số câu (mobile <-> desktop) nếu app.js chỉ render vào 1 nơi
-    // App cũ thường render #numberNav; đoạn này sao chép qua #numberNavDesktop khi có thay đổi DOM
+    // Đồng bộ numberNav -> numberNavDesktop (nếu app render mobile)
     const mob = document.getElementById('numberNav');
     const pc  = document.getElementById('numberNavDesktop');
-    const observer = new MutationObserver(() => { pc.innerHTML = mob.innerHTML; });
-    observer.observe(mob, { childList: true, subtree: true });
+    if (mob && pc) {
+      const sync = () => { pc.innerHTML = mob.innerHTML; };
+      new MutationObserver(sync).observe(mob, { childList: true, subtree: true });
+      sync();
+    }
   </script>
 </body>
 </html>
