@@ -3,81 +3,72 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0ea5e9" />
   <title>Quiz Master</title>
 
-  <!-- Favicon inline: hết 404 -->
-  <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="%230ea5e9"/><text x="50%" y="54%" font-size="38" text-anchor="middle" fill="%23011a2b" font-family="Arial,Helvetica,sans-serif">Q</text></svg>' />
+  <!-- Favicon inline để khỏi 404 -->
+  <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="%230ea5e9"/><text x="50%" y="56%" font-size="40" text-anchor="middle" fill="%2303121f" font-family="Inter,Arial,sans-serif">Q</text></svg>'>
 
-  <!-- Tailwind CDN -->
+  <!-- Tailwind (CDN) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
-          colors: { brand: { 500:'#0ea5e9', 600:'#0284c7' } },
-          boxShadow: { card: '0 10px 24px rgba(0,0,0,.25)' }
+          colors: { brand: {50:'#f0f9ff', 500:'#0ea5e9', 600:'#0284c7'} },
+          boxShadow: { soft: '0 10px 24px rgba(0,0,0,.25)' }
         }
       }
     }
   </script>
 
-  <!-- CSS bổ sung cho đáp án / lưới số câu -->
+  <!-- CSS tinh chỉnh nhỏ cho radio/đáp án, lưới số câu -->
   <link rel="stylesheet" href="tailwind-fix.css" />
 </head>
 <body class="min-h-dvh bg-slate-950 text-slate-100 antialiased">
-  <div id="app" class="flex min-h-dvh flex-col">
-    <!-- HEADER -->
+  <div class="mx-auto max-w-[1100px]">
+    <!-- HEADER / CONTROL BAR (mobile-first) -->
     <header class="sticky top-0 z-30 border-b border-slate-800 bg-slate-900/80 backdrop-blur">
-      <div class="flex items-center gap-2 px-4 pt-3">
-        <div class="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-brand-500 to-sky-400 font-extrabold text-slate-900">Q</div>
+      <div class="flex items-center gap-3 px-4 pt-3">
+        <div class="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-brand-500 to-sky-400 font-extrabold text-slate-900">Q</div>
         <h1 class="text-lg font-semibold tracking-wide">Quiz Master</h1>
       </div>
 
-      <!-- Hàng điều khiển: app.js sẽ fill vào các container dưới đây -->
-      <div class="flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 pb-3 pt-2 md:flex-wrap md:overflow-visible">
-        <div class="grid min-w-[150px] snap-start gap-1">
+      <div class="grid grid-cols-2 gap-2 px-4 pb-3 pt-2 sm:grid-cols-3 md:grid-cols-6">
+        <label class="grid gap-1">
           <span class="text-xs text-slate-400">Môn</span>
-          <!-- app.js tìm #subjectSelect: cung cấp sẵn thẻ select trống -->
-          <select id="subjectSelect" class="h-10 rounded-xl border border-slate-800 bg-slate-900 px-3 text-sm"></select>
-        </div>
+          <select id="subject" class="h-10 rounded-xl border border-slate-800 bg-slate-900 px-3 text-sm"></select>
+        </label>
 
-        <div class="grid min-w-[140px] snap-start gap-1">
+        <label class="grid gap-1">
           <span class="text-xs text-slate-400">Chế độ</span>
-          <select id="modeSelect" class="h-10 rounded-xl border border-slate-800 bg-slate-900 px-3 text-sm">
-            <option value="practice">Luyện</option>
+          <select id="mode" class="h-10 rounded-xl border border-slate-800 bg-slate-900 px-3 text-sm">
+            <option value="practice">Luyện tập</option>
             <option value="exam">Thi</option>
           </select>
-        </div>
+        </label>
 
-        <div class="grid min-w-[110px] snap-start gap-1">
+        <label class="grid gap-1">
           <span class="text-xs text-slate-400">Số câu</span>
-          <input id="questionCount" type="number" min="1" max="500" class="h-10 rounded-xl border border-slate-800 bg-slate-900 px-3 text-sm" />
-        </div>
+          <input id="count" type="number" min="1" max="500" class="h-10 rounded-xl border border-slate-800 bg-slate-900 px-3 text-sm" />
+        </label>
 
-        <div class="grid min-w-[110px] snap-start gap-1">
-          <span class="text-xs text-slate-400">Phút</span>
-          <input id="duration" type="number" min="0" max="999" class="h-10 rounded-xl border border-slate-800 bg-slate-900 px-3 text-sm" />
-        </div>
+        <label class="grid gap-1">
+          <span class="text-xs text-slate-400">Thời gian (phút, 0 = không đếm)</span>
+          <input id="duration" type="number" min="0" max="999" value="0" class="h-10 rounded-xl border border-slate-800 bg-slate-900 px-3 text-sm" />
+        </label>
 
-        <label class="inline-flex min-w-max snap-start items-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-3 text-sm">
-          <input id="shuffleToggle" type="checkbox" class="h-5 w-5 accent-sky-500" />
+        <label class="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-3 text-sm">
+          <input id="shuffle" type="checkbox" class="h-5 w-5 accent-sky-500">
           <span>Đảo đáp án</span>
         </label>
 
-        <div class="grid min-w-[150px] snap-start gap-1">
-          <span class="text-xs text-slate-400">Seed</span>
-          <input id="seed" type="text" inputmode="numeric" class="h-10 rounded-xl border border-slate-800 bg-slate-900 px-3 text-sm" />
-        </div>
-
-        <div class="flex min-w-max snap-start items-center gap-2">
-          <button id="startBtn" class="h-10 rounded-xl bg-gradient-to-b from-brand-500 to-brand-600 px-4 font-semibold text-slate-950 shadow-card">Bắt đầu</button>
-          <button id="resumeBtn" hidden class="h-10 rounded-xl border border-slate-800 bg-slate-900 px-4">Tiếp tục</button>
-        </div>
+        <button id="start" class="h-10 rounded-xl bg-gradient-to-b from-brand-500 to-brand-600 font-semibold text-slate-950 shadow-soft">
+          Bắt đầu
+        </button>
       </div>
 
-      <!-- Progress -->
-      <div class="grid grid-cols-[1fr_auto] items-center gap-2 px-4 pb-3">
+      <!-- PROGRESS -->
+      <div class="grid grid-cols-[1fr_auto] items-center gap-3 px-4 pb-3">
         <div class="relative h-2 rounded-full bg-slate-800">
           <div id="progressBar" class="absolute left-0 top-0 h-2 w-0 rounded-full bg-gradient-to-r from-brand-500 to-sky-400 transition-[width] duration-200 ease-linear"></div>
         </div>
@@ -88,32 +79,26 @@
       </div>
     </header>
 
-    <!-- Drawer mobile -->
-    <details id="navDrawer" class="m-4 rounded-2xl border border-slate-800 bg-slate-900 md:hidden">
-      <summary class="cursor-pointer list-none p-3 font-semibold">Danh sách câu hỏi</summary>
-      <div class="border-t border-slate-800 p-3">
-        <div id="numberNav" class="num-grid grid grid-cols-6 gap-2 sm:grid-cols-8"></div>
-      </div>
-    </details>
-
-    <!-- MAIN -->
-    <main class="mx-auto w-full max-w-[1200px] grid-cols-1 gap-4 p-4 md:grid md:grid-cols-[260px_minmax(0,1fr)] lg:grid-cols-[260px_minmax(0,1fr)_320px]">
-      <aside class="hidden md:block md:space-y-4">
-        <div class="rounded-2xl border border-slate-800 bg-slate-900 shadow-card">
+    <!-- BODY -->
+    <main class="grid grid-cols-1 gap-4 p-4 md:grid-cols-[260px_minmax(0,1fr)]">
+      <!-- LEFT: list số câu (ẩn trên mobile) -->
+      <aside class="hidden md:block">
+        <div class="rounded-2xl border border-slate-800 bg-slate-900 shadow-soft">
           <div class="border-b border-slate-800 p-3 font-bold">Danh sách câu</div>
-          <div class="p-3">
-            <div id="numberNavDesktop" class="num-grid grid grid-cols-6 gap-2"></div>
-          </div>
-        </div>
-        <div class="rounded-2xl border border-slate-800 bg-slate-900 shadow-card">
-          <div class="border-b border-slate-800 p-3 font-bold">Seed hiện tại</div>
-          <div id="seedBox" class="p-3 font-mono text-sm text-slate-300">—</div>
+          <div id="numberGrid" class="p-3 num-grid grid grid-cols-6 gap-2"></div>
         </div>
       </aside>
 
+      <!-- RIGHT: câu hỏi -->
       <section class="space-y-4">
-        <article id="questionCard" class="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-card" aria-live="polite">
-          <div class="mb-2 flex items-center justify-between gap-2">
+        <!-- Drawer mobile cho danh sách câu -->
+        <details class="rounded-2xl border border-slate-800 bg-slate-900 md:hidden">
+          <summary class="cursor-pointer list-none p-3 font-semibold">Danh sách câu hỏi</summary>
+          <div id="numberGridMobile" class="border-t border-slate-800 p-3 num-grid grid grid-cols-6 gap-2"></div>
+        </details>
+
+        <article id="card" class="rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-soft">
+          <div class="mb-2 flex items-center justify-between">
             <div class="flex flex-wrap items-center gap-2">
               <span id="subjectBadge" class="rounded-full border border-slate-700 bg-slate-800 px-2 py-0.5 text-xs">—</span>
               <span id="modeBadge" class="rounded-full border border-slate-800 bg-slate-900 px-2 py-0.5 text-xs text-slate-300">—</span>
@@ -121,51 +106,33 @@
             <div id="qIndex" class="text-sm text-slate-400">Câu —</div>
           </div>
 
-          <div id="questionText" class="pb-3 text-lg leading-relaxed">Nhấn “Bắt đầu” để vào đề.</div>
+          <div id="question" class="pb-3 text-lg leading-relaxed">Nhấn “Bắt đầu”.</div>
+
           <ul id="answers" class="space-y-3" role="listbox" aria-label="Đáp án"></ul>
         </article>
 
-        <!-- Nút điều hướng -->
         <div class="sticky bottom-[env(safe-area-inset-bottom,0px)] z-20 grid grid-cols-4 gap-2 rounded-2xl border border-slate-800 bg-slate-900/95 p-2 backdrop-blur md:static md:bg-transparent md:p-0">
-          <button id="prevBtn" class="h-10 rounded-xl border border-slate-800 bg-slate-900 disabled:opacity-50" disabled>◀ Trước</button>
-          <button id="clearBtn" class="h-10 rounded-xl border border-slate-800 bg-transparent disabled:opacity-50" disabled>Xóa chọn</button>
-          <button id="markBtn" class="h-10 rounded-xl border border-slate-800 bg-transparent disabled:opacity-50" disabled>Đánh dấu</button>
-          <button id="nextBtn" class="h-10 rounded-xl bg-gradient-to-b from-brand-500 to-brand-600 font-semibold text-slate-950 shadow-card">Tiếp ▶</button>
+          <button id="prev" class="h-10 rounded-xl border border-slate-800 bg-slate-900 disabled:opacity-50" disabled>◀ Trước</button>
+          <button id="clear" class="h-10 rounded-xl border border-slate-800 bg-slate-900 disabled:opacity-50" disabled>Xóa chọn</button>
+          <button id="mark" class="h-10 rounded-xl border border-slate-800 bg-slate-900 disabled:opacity-50" disabled>Đánh dấu</button>
+          <button id="next" class="h-10 rounded-xl bg-gradient-to-b from-brand-500 to-brand-600 font-semibold text-slate-950 shadow-soft" disabled>Tiếp ▶</button>
         </div>
 
         <div class="flex flex-wrap justify-end gap-2">
-          <button id="submitBtn" class="h-10 rounded-xl bg-gradient-to-b from-brand-500 to-brand-600 px-4 font-semibold text-slate-950 shadow-card disabled:opacity-50" disabled>Nộp bài</button>
-          <button id="reviewWrongBtn" class="h-10 rounded-xl border border-slate-800 bg-slate-900 px-4" hidden>Xem câu sai</button>
-          <button id="exportCsvBtn" class="h-10 rounded-xl border border-slate-800 bg-transparent px-4" hidden>Xuất CSV</button>
+          <button id="submit" class="h-10 rounded-xl bg-gradient-to-b from-brand-500 to-brand-600 px-4 font-semibold text-slate-950 shadow-soft disabled:opacity-50" disabled>Nộp bài</button>
+          <button id="retry" class="h-10 rounded-xl border border-slate-800 bg-slate-900 px-4" hidden>Làm lại</button>
+          <button id="reviewWrong" class="h-10 rounded-xl border border-slate-800 bg-slate-900 px-4" hidden>Xem câu sai</button>
         </div>
 
-        <section id="resultPanel" class="rounded-2xl border border-slate-800 bg-slate-900 p-4" hidden></section>
+        <section id="result" class="rounded-2xl border border-slate-800 bg-slate-900 p-4" hidden></section>
       </section>
-
-      <aside class="hidden lg:block lg:space-y-4">
-        <div class="rounded-2xl border border-slate-800 bg-slate-900 shadow-card">
-          <div class="border-b border-slate-800 p-3 font-bold">Kiểm tra dữ liệu</div>
-          <div id="qaPanel" class="p-3 text-sm"></div>
-        </div>
-        <div class="rounded-2xl border border-slate-800 bg-slate-900 shadow-card">
-          <div class="border-b border-slate-800 p-3 font-bold">Lịch sử</div>
-          <div id="historyList" class="p-3 text-sm"></div>
-        </div>
-      </aside>
     </main>
 
-    <footer class="mt-auto border-t border-slate-800 px-4 py-3 text-sm text-slate-400">
-      <div class="flex items-center justify-between">
-        <a id="shareLink" href="#" class="hover:underline">Chia sẻ đề</a>
-        <button id="resetAppBtn" class="h-8 rounded-lg border border-slate-800 bg-transparent px-3">Đặt lại</button>
-      </div>
-    </footer>
+    <footer class="px-4 py-6 text-center text-xs text-slate-500">© Quiz Master</footer>
   </div>
 
-  <!-- NẠP JS: dùng DEFER để chắc chắn DOM có trước khi app.js chạy -->
+  <!-- Nạp theo thứ tự, DÙNG defer để DOM có trước -->
   <script defer src="data.js"></script>
-  <script defer src="parser.js"></script>
-  <script defer src="store.js"></script>
   <script defer src="app.js"></script>
 </body>
 </html>
