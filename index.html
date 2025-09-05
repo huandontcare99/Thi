@@ -3,956 +3,537 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Ôn Thi</title>
+  <title>Ôn luyện trắc nghiệm – mobile first</title>
 
-  <!-- Tailwind -->
+  <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
-      darkMode: 'class',
       theme: {
         extend: {
-          colors: { brand:'#2563eb', ok:'#16a34a', bad:'#ef4444', ink:'#0f172a' },
-          boxShadow: { card:'0 12px 32px -14px rgba(0,0,0,.22)' },
-          screens: { xs:'380px' }
+          colors: {
+            brand: {
+              50:'#eef2ff',100:'#e0e7ff',200:'#c7d2fe',300:'#a5b4fc',400:'#818cf8',
+              500:'#6366f1',600:'#4f46e5',700:'#4338ca',800:'#3730a3',900:'#312e81'
+            }
+          }
         }
       }
     }
   </script>
 
+  <!-- Small fixes for mobile/tablet -->
   <style>
-    :root{
-      --tabbar-h: 64px;
-      --safe-top: env(safe-area-inset-top);
-      --safe-bottom: env(safe-area-inset-bottom);
-    }
-    /* Appbar */
-    .appbar{
-      height: 56px;
-      padding-top: max(0px, var(--safe-top));
-    }
-    /* Bottom tabbar */
-    .tabbar{
-      height: calc(var(--tabbar-h) + var(--safe-bottom));
-      padding-bottom: max(10px, var(--safe-bottom));
-    }
-    main{ padding-bottom: calc(var(--tabbar-h) + 12px + var(--safe-bottom)); }
-
-    /* Options */
-    .opt input{ display:none; }
-    .opt label{
-      display:block; position:relative; border:1px solid #e5e7eb; background:#fff; border-radius:16px;
-      padding:12px 14px; transition:transform .06s ease, border-color .12s, box-shadow .12s, background .12s;
-    }
-    .dark .opt label{ border-color:#1f2937; background:#0b1220; }
-    .opt label:active{ transform:scale(.995); }
-    .opt .lead{
-      width:30px; height:30px; border-radius:999px; display:flex; align-items:center; justify-content:center;
-      font-weight:700; background:#f1f5f9; color:#334155; flex:none;
-    }
-    .dark .opt .lead{ background:#0f172a; color:#cbd5e1; }
-    .opt input:checked + label{
-      border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.16) inset; background:linear-gradient(180deg, rgba(37,99,235,.05), transparent 40%);
-    }
-    .is-correct{ border-color:#16a34a!important; box-shadow:0 0 0 3px rgba(22,163,74,.18) inset; }
-    .is-wrong  { border-color:#ef4444!important; box-shadow:0 0 0 3px rgba(239,68,68,.18) inset; }
-    .badge{
-      position:absolute; right:10px; top:10px; font-size:12px; font-weight:700; padding:2px 8px; border-radius:999px; color:#fff;
-    }
-    .badge.ok{ background:#16a34a; } .badge.bad{ background:#ef4444; }
-
-    .dot{ width:10px; height:10px; border-radius:999px; background:#cbd5e1; }
-    .dark .dot{ background:#475569; }
-    .dot.active{ background:#2563eb; }
-    .dot.done.correct{ background:#16a34a; }
-    .dot.done.wrong{ background:#ef4444; }
-
-    .donut{ --p:0; width:120px; height:120px; border-radius:999px; background: conic-gradient(#16a34a var(--p), #e2e8f0 0); }
-    .dark .donut{ background: conic-gradient(#16a34a var(--p), #334155 0); }
-
-    /* iOS avoid zoom on input */
-    @media (max-width:380px){ select,input,button{ font-size:16px; } }
-
-    /* Drawer */
-    .drawer{ transform:translateX(-100%); transition:transform .2s ease; }
-    .drawer.open{ transform:translateX(0); }
-    .scrim{ background:rgba(0,0,0,.28); opacity:0; transition:opacity .2s ease; pointer-events:none; }
-    .scrim.show{ opacity:1; pointer-events:all; }
-
-    /* Tablet (md+) 2-pane for Play */
-    @media (min-width:768px){
-      #playGrid{ display:grid; grid-template-columns: 250px 1fr; gap:12px; align-items:start; }
-      #leftPane{ position:sticky; top:68px; }
-    }
+    *{-webkit-tap-highlight-color:rgba(0,0,0,0)}
+    html,body{height:100%}
+    button:active{transform:translateY(.5px)}
+    ::-webkit-scrollbar{width:8px;height:8px}
+    ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:8px}
+    .fade-in{animation:fade .25s ease}
+    @keyframes fade{from{opacity:.0;transform:translateY(2px)}to{opacity:1;transform:none}}
   </style>
-
-  <!-- DATA -->
-  <script src="data.js" defer></script>
 </head>
-<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen">
-  <!-- Appbar -->
-  <header class="appbar sticky top-0 z-40 backdrop-blur bg-white/90 dark:bg-slate-900/85 border-b border-slate-200 dark:border-slate-800">
-    <div class="max-w-4xl mx-auto px-3 h-full flex items-center gap-2">
-      <button id="btnMenu" class="px-3 py-2 rounded-xl border border-transparent hover:border-slate-200 dark:hover:border-slate-700">☰</button>
-      <div class="min-w-0">
-        <div class="text-sm font-semibold leading-5">Ôn Thi</div>
-        <div id="titleSub" class="text-[11px] text-slate-500 dark:text-slate-400 -mt-1 truncate">Mobile • Tablet</div>
-      </div>
-      <div class="ml-auto flex items-center gap-1">
-        <button id="btnResume" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hidden">Tiếp tục</button>
-        <button id="btnTheme" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">🌙</button>
+<body class="bg-slate-50 text-slate-900 selection:bg-brand-200 selection:text-slate-900">
+
+  <!-- HEADER (nhẹ, không che màn) -->
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-slate-200">
+    <div class="max-w-4xl mx-auto px-3 py-2">
+      <div class="flex items-center justify-between gap-3">
+        <h1 class="text-base sm:text-lg font-semibold tracking-tight">Ôn luyện trắc nghiệm</h1>
+        <nav class="flex items-center gap-2">
+          <button id="navHome" class="text-xs sm:text-sm px-3 py-1 rounded-lg border border-slate-300 hover:bg-slate-100">Trang chủ</button>
+          <button id="navFlash" class="text-xs sm:text-sm px-3 py-1 rounded-lg border border-slate-300 hover:bg-slate-100">Flashcards</button>
+        </nav>
       </div>
     </div>
   </header>
 
-  <!-- Drawer -->
-  <div id="scrim" class="scrim fixed inset-0 z-40"></div>
-  <aside id="drawer" class="drawer fixed z-50 top-0 left-0 bottom-0 w-[86%] max-w-[360px] bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 p-4 overflow-y-auto">
-    <div class="flex items-center gap-2 mb-3">
-      <div class="w-9 h-9 rounded-xl bg-brand text-white flex items-center justify-center font-bold">U</div>
-      <div class="font-semibold">Menu nhanh</div>
-      <button id="btnClose" class="ml-auto px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700">✕</button>
-    </div>
-    <nav class="grid gap-2">
-      <button data-view="setup" class="navlink text-left px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700">⚙️ Setup</button>
-      <button data-view="play" class="navlink text-left px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700">📝 Làm bài</button>
-      <button data-view="flash" class="navlink text-left px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700">🃏 Flashcards</button>
-      <button data-view="review" class="navlink text-left px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700">🔁 Ôn sai</button>
-      <button data-view="stats" class="navlink text-left px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700">📊 Thống kê</button>
-      <button data-view="settings" class="navlink text-left px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700">🔧 Cài đặt</button>
-    </nav>
-    <div class="mt-4 text-xs text-slate-500 dark:text-slate-400">Tip: bạn có thể vuốt trái/phải để chuyển câu khi làm bài.</div>
-  </aside>
+  <!-- MAIN -->
+  <main class="max-w-4xl mx-auto p-3 pb-24 space-y-4">
 
-  <main class="max-w-4xl mx-auto px-3 pb-16">
-    <!-- ===== SETUP ===== -->
-    <section id="setup" class="mt-3">
-      <div id="warn" class="hidden mb-3 p-3 text-sm rounded-xl bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200">
-        Không đọc được dữ liệu gốc. Hãy đảm bảo <b>index.html</b> đặt cùng thư mục với <b>data.js</b>.
-      </div>
+    <!-- Alert -->
+    <div id="alert" class="hidden mb-2 p-3 rounded-lg border text-sm"></div>
 
-      <div class="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-card p-4">
-        <div class="mb-2 font-semibold">Thiết lập</div>
+    <!-- VIEW: SETUP -->
+    <section id="view-setup" class="fade-in space-y-4">
+      <div class="rounded-2xl bg-white shadow-sm border border-slate-200 p-4">
+        <h2 class="text-base font-semibold mb-3">Thiết lập</h2>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div>
-            <label class="text-sm font-medium">Môn</label>
-            <select id="selSubject" class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2">
-              <option>Đang nạp…</option>
+        <!-- Form chọn nhanh – mobile first, không đè nhau -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <label class="block">
+            <span class="block text-sm mb-1">Môn</span>
+            <select id="selSubject" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-brand-400">
+              <option value="">Đang nạp dữ liệu…</option>
             </select>
-          </div>
+          </label>
 
-          <div>
-            <label class="text-sm font-medium">Chế độ</label>
-            <select id="selMode" class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2">
-              <option value="study">Học (hiện đáp án)</option>
-              <option value="practice" selected>Luyện tập (chấm ngay)</option>
-              <option value="exam">Thi thử (chấm cuối)</option>
-              <option value="flash">Flashcards</option>
+          <label class="block">
+            <span class="block text-sm mb-1">Chế độ</span>
+            <select id="selMode" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-brand-400">
+              <option value="practice">Luyện tập</option>
+              <option value="exam">Thi (đếm giờ)</option>
             </select>
-          </div>
+          </label>
 
-          <div>
-            <label class="text-sm font-medium">Số câu</label>
-            <select id="selCount" class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2">
-              <option value="10" selected>10</option>
+          <label class="block">
+            <span class="block text-sm mb-1">Số câu</span>
+            <select id="selCount" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-brand-400">
+              <option value="10">10</option>
               <option value="20">20</option>
               <option value="50">50</option>
               <option value="100">100</option>
               <option value="all">Tất cả</option>
             </select>
-          </div>
+          </label>
 
-          <div>
-            <label class="text-sm font-medium">Thứ tự</label>
-            <select id="selOrder" class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2">
-              <option value="sequence">Theo thứ tự</option>
-              <option value="shuffle" selected>Ngẫu nhiên</option>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="flex items-center gap-2">
+              <input id="chkShuffleQ" type="checkbox" class="w-5 h-5 rounded border-slate-300 text-brand-600 focus:ring-brand-400" checked>
+              <span class="text-sm">Xáo câu</span>
+            </label>
+            <label class="flex items-center gap-2">
+              <input id="chkShuffleA" type="checkbox" class="w-5 h-5 rounded border-slate-300 text-brand-600 focus:ring-brand-400" checked>
+              <span class="text-sm">Xáo đáp án</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="mt-4 flex items-center gap-2">
+          <button id="btnStart" class="flex-1 px-4 py-3 rounded-xl bg-brand-600 text-white font-medium active:scale-[.985] hover:bg-brand-700">Bắt đầu</button>
+          <button id="btnQuick" class="px-4 py-3 rounded-xl border border-slate-300 font-medium hover:bg-slate-100 active:scale-[.985]">Test nhanh 10 câu</button>
+        </div>
+      </div>
+
+      <div class="rounded-2xl bg-white shadow-sm border border-slate-200 p-4 text-sm text-slate-600">
+        Mẹo: “Luyện tập” xem đáp án đúng ngay khi nộp; “Thi” sẽ có đếm giờ & chấm sau cùng.
+      </div>
+    </section>
+
+    <!-- VIEW: QUIZ -->
+    <section id="view-quiz" class="hidden fade-in space-y-3">
+      <!-- Thanh tiến trình + thời gian -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+        <div class="flex items-center justify-between text-sm mb-2">
+          <div id="quizMeta" class="font-medium">--</div>
+          <div id="timer" class="tabular-nums text-slate-600">--:--</div>
+        </div>
+        <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+          <div id="progressBar" class="h-2 bg-brand-500 w-0"></div>
+        </div>
+      </div>
+
+      <!-- Card câu hỏi -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+        <div id="qTitle" class="text-base font-semibold mb-2">—</div>
+        <div id="qText" class="text-[15px] leading-relaxed mb-3">—</div>
+
+        <div id="qOptions" class="space-y-2"></div>
+
+        <div class="mt-4 flex items-center gap-2">
+          <button id="btnPrev" class="flex-1 px-3 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 active:scale-[.985]">← Trước</button>
+          <button id="btnShuffleOne" class="px-3 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 active:scale-[.985]">🔀 đáp án</button>
+          <button id="btnNext" class="flex-1 px-3 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 active:scale-[.985]">Sau →</button>
+        </div>
+
+        <div class="mt-3">
+          <button id="btnSubmit" class="w-full px-4 py-3 rounded-xl bg-brand-600 text-white font-medium hover:bg-brand-700 active:scale-[.985]">Nộp bài</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW: RESULT -->
+    <section id="view-result" class="hidden fade-in space-y-4">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+        <h2 class="text-base font-semibold mb-2">Kết quả</h2>
+        <div id="scoreLine" class="text-[15px] mb-2">—</div>
+        <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+          <div id="scoreBar" class="h-2 bg-brand-500 w-0"></div>
+        </div>
+        <div class="mt-3 flex items-center gap-2">
+          <button id="btnReviewWrong" class="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 active:scale-[.985]">Ôn câu sai</button>
+          <button id="btnRestart" class="flex-1 px-4 py-2.5 rounded-xl bg-brand-600 text-white hover:bg-brand-700 active:scale-[.985]">Làm lại</button>
+        </div>
+      </div>
+
+      <div id="wrongList" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 hidden">
+        <h3 class="text-base font-semibold mb-3">Câu sai</h3>
+        <div id="wrongItems" class="space-y-4"></div>
+      </div>
+    </section>
+
+    <!-- VIEW: FLASHCARDS -->
+    <section id="view-flash" class="hidden fade-in space-y-3">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+        <div class="flex flex-col sm:flex-row sm:items-end gap-2 sm:gap-3">
+          <div class="flex-1">
+            <label class="block text-sm mb-1">Nguồn thẻ</label>
+            <select id="flashSource" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-brand-400">
+              <option value="all">Tất cả câu của môn hiện tại</option>
+              <option value="wrong">Chỉ các câu sai gần nhất</option>
             </select>
           </div>
-
-          <div>
-            <label class="text-sm font-medium">Bộ lọc</label>
-            <select id="selFilter" class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2">
-              <option value="all" selected>Tất cả</option>
-              <option value="bookmarked">Đã đánh dấu</option>
-              <option value="wrong">Sai gần đây</option>
-              <option value="new">Chưa làm</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="text-sm font-medium">Tìm kiếm</label>
-            <input id="txtSearch" placeholder="Từ khóa trong câu/đáp án…" class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2"/>
+          <div class="flex gap-2">
+            <button id="flashShuffle" class="px-3 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100">🔀 Xáo</button>
+            <button id="flashPrev" class="px-3 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100">←</button>
+            <button id="flashNext" class="px-3 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100">→</button>
           </div>
         </div>
+      </div>
 
-        <div class="mt-4 grid grid-cols-2 xs:grid-cols-3 gap-3">
-          <button id="btnStart" class="col-span-2 xs:col-span-1 bg-brand hover:bg-blue-700 text-white rounded-2xl px-5 py-3 font-semibold shadow-card">BẮT ĐẦU</button>
-          <button id="btnToFlash" class="rounded-2xl px-5 py-3 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">Flashcards</button>
-          <button id="btnReview" class="rounded-2xl px-5 py-3 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">Ôn câu sai</button>
-        </div>
+      <div id="flashCard" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 text-center">
+        <div id="flashMeta" class="text-sm text-slate-600 mb-2">—</div>
+        <div id="flashQ" class="text-base font-semibold mb-3">—</div>
+        <button id="flashReveal" class="mx-auto px-4 py-2.5 rounded-xl bg-brand-600 text-white hover:bg-brand-700">Hiện đáp án</button>
+        <div id="flashA" class="hidden mt-3 text-[15px] leading-relaxed"></div>
       </div>
     </section>
 
-    <!-- ===== PLAY ===== -->
-    <section id="play" class="hidden mt-3">
-      <div id="playGrid">
-        <div id="leftPane" class="hidden md:block rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-card p-4">
-          <div class="text-sm font-semibold">Tiến độ</div>
-          <div class="mt-2 h-2 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-            <div id="progress" class="h-2 bg-brand" style="width:0%"></div>
-          </div>
-          <div class="mt-1 text-xs text-slate-500 dark:text-slate-400" id="progText">0 / 0</div>
-          <div id="minimap" class="mt-3 grid grid-cols-12 gap-1"></div>
-          <div class="mt-3 text-xs text-slate-500 dark:text-slate-400" id="timerBox" hidden>⏱ <span id="timer">00:00</span></div>
-        </div>
-
-        <div>
-          <div class="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-card p-4 md:hidden">
-            <div class="flex items-center gap-2">
-              <div id="badgeSubj" class="text-xs px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">Môn</div>
-              <div id="badgeMode" class="text-xs px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">Chế độ</div>
-              <div class="ml-auto text-xs text-slate-500 dark:text-slate-400" id="timerBoxSm" hidden>⏱ <span id="timerSm">00:00</span></div>
-            </div>
-            <div class="mt-2 h-2 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-              <div id="progressSm" class="h-2 bg-brand" style="width:0%"></div>
-            </div>
-            <div class="mt-1 text-xs text-slate-500 dark:text-slate-400" id="progTextSm">0 / 0</div>
-          </div>
-
-          <article id="qCard" class="hidden mt-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-card p-4">
-            <div class="flex items-start gap-2">
-              <h2 id="qTitle" class="text-[17px] md:text-lg font-semibold flex-1"></h2>
-              <div class="flex gap-2">
-                <button id="btnBookmark" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800" title="Đánh dấu">🔖</button>
-                <button id="btnShuffleOpts" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800" title="Xáo đáp án">🔀</button>
-              </div>
-            </div>
-
-            <div id="optList" class="mt-3 space-y-2"></div>
-
-            <details id="expWrap" class="mt-4">
-              <summary class="cursor-pointer select-none text-sm font-semibold">Giải thích</summary>
-              <div id="expText" class="text-sm text-slate-700 dark:text-slate-300 mt-1"></div>
-            </details>
-
-            <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2">
-              <button id="btnPrev" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">← Trước</button>
-              <button id="btnNext" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">Tiếp →</button>
-              <button id="btnCheck" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">Chấm</button>
-              <button id="btnReveal" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">Hiện đáp án</button>
-              <button id="btnSubmit" class="col-span-2 md:col-span-4 px-4 py-3 rounded-2xl bg-brand text-white">Nộp bài</button>
-            </div>
-          </article>
-
-          <article id="resultCard" class="hidden mt-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-card p-4">
-            <div class="flex items-center gap-4">
-              <div id="donut" class="donut" style="--p:0deg"></div>
-              <div>
-                <h3 class="text-lg font-bold mb-1">Kết quả</h3>
-                <p id="scoreText" class="text-sm text-slate-700 dark:text-slate-300"></p>
-                <div id="timeText" class="text-xs text-slate-500 dark:text-slate-400"></div>
-              </div>
-            </div>
-            <div class="mt-3 grid grid-cols-2 gap-2">
-              <button id="btnRestart" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">Làm lại</button>
-              <button id="btnGoReview" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">Ôn câu sai</button>
-            </div>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===== FLASHCARDS ===== -->
-    <section id="flash" class="hidden mt-3">
-      <div class="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-card p-4">
-        <div class="flex items-center gap-2">
-          <div id="fcBadge" class="text-xs px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">Flashcards</div>
-          <div class="ml-auto text-xs text-slate-500 dark:text-slate-400" id="fcStatsMini"></div>
-        </div>
-
-        <div id="fcEmpty" class="hidden mt-3 p-3 text-sm rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-          Chưa có thẻ đến hạn. Bấm <b>Thêm thẻ mới</b> để luyện thẻ mới.
-        </div>
-
-        <article id="fcCard" class="mt-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-card p-5 text-center">
-          <div id="fcFront" class="text-base md:text-lg font-semibold leading-relaxed"></div>
-          <div id="fcBack" class="hidden text-sm text-slate-700 dark:text-slate-300 mt-3"></div>
-        </article>
-
-        <div class="mt-4 grid grid-cols-4 gap-2">
-          <button id="fcShow" class="col-span-4 px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">Hiện đáp án</button>
-          <button id="fcAgain" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">Again</button>
-          <button id="fcGood"  class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">Good</button>
-          <button id="fcEasy"  class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">Easy</button>
-          <button id="fcNew"   class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">Thêm thẻ mới</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===== REVIEW SAI ===== -->
-    <section id="review" class="hidden mt-3">
-      <div class="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-card p-4">
-        <div class="flex items-center gap-2">
-          <div class="font-semibold">Ôn câu sai gần đây</div>
-          <div class="ml-auto flex gap-2">
-            <button id="btnClearWrong" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">Xóa danh sách</button>
-            <button id="btnDrillWrong" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">Luyện nhanh</button>
-          </div>
-        </div>
-        <div id="wrongList" class="mt-3 space-y-2"></div>
-      </div>
-    </section>
-
-    <!-- ===== STATS ===== -->
-    <section id="stats" class="hidden mt-3">
-      <div class="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-card p-4">
-        <div class="flex items-center gap-2">
-          <div class="font-semibold">Thống kê</div>
-          <div class="ml-auto flex gap-2">
-            <button id="btnExport" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">Xuất tiến độ</button>
-            <button id="btnImport" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">Nhập</button>
-          </div>
-        </div>
-        <div id="statsBody" class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3"></div>
-      </div>
-    </section>
-
-    <!-- ===== SETTINGS ===== -->
-    <section id="settings" class="hidden mt-3">
-      <div class="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-card p-4">
-        <div class="font-semibold">Cài đặt</div>
-        <div class="mt-3 grid grid-cols-1 gap-3">
-          <label class="flex items-center gap-3">
-            <input id="stAutoNext" type="checkbox" class="size-4 accent-brand">
-            <span class="text-sm">Tự chuyển câu sau khi chọn (Luyện tập)</span>
-          </label>
-          <label class="flex items-center gap-3">
-            <input id="stAutoExplain" type="checkbox" class="size-4 accent-brand" checked>
-            <span class="text-sm">Tự mở phần giải thích khi chấm</span>
-          </label>
-          <label class="flex items-center gap-3">
-            <input id="stShuffleOpts" type="checkbox" class="size-4 accent-brand">
-            <span class="text-sm">Xáo trộn đáp án mỗi lần hiển thị</span>
-          </label>
-          <button id="btnResetAll" class="mt-2 px-4 py-2 rounded-xl border border-bad/30 text-bad">Đặt lại toàn bộ tiến độ</button>
-        </div>
-      </div>
-    </section>
   </main>
 
-  <!-- Bottom Tabbar -->
-  <footer class="tabbar fixed bottom-0 inset-x-0 z-30 backdrop-blur bg-white/95 dark:bg-slate-900/95 border-t border-slate-200 dark:border-slate-800">
-    <div class="max-w-4xl mx-auto grid grid-cols-5">
-      <button data-view="setup" class="tabbtn flex flex-col items-center justify-center py-2 gap-0.5">
-        <div>⚙️</div><div class="text-[11px]">Setup</div>
-      </button>
-      <button data-view="play" class="tabbtn flex flex-col items-center justify-center py-2 gap-0.5">
-        <div>📝</div><div class="text-[11px]">Làm bài</div>
-      </button>
-      <button data-view="flash" class="tabbtn flex flex-col items-center justify-center py-2 gap-0.5">
-        <div>🃏</div><div class="text-[11px]">Flash</div>
-      </button>
-      <button data-view="review" class="tabbtn flex flex-col items-center justify-center py-2 gap-0.5">
-        <div>🔁</div><div class="text-[11px]">Ôn sai</div>
-      </button>
-      <button data-view="stats" class="tabbtn flex flex-col items-center justify-center py-2 gap-0.5">
-        <div>📊</div><div class="text-[11px]">Thống kê</div>
-      </button>
-    </div>
-  </footer>
+  <!-- MUST load data.js BEFORE app script -->
+  <script src="data.js"></script>
 
+  <!-- APP -->
   <script>
-  (function(){
-    "use strict";
-    const $ = s => document.querySelector(s);
-    const $$ = s => Array.from(document.querySelectorAll(s));
-    const byId = id => document.getElementById(id);
-    const on = (el, ev, fn) => el && el.addEventListener(ev, fn, {passive: ev.startsWith('touch')});
-    const letters=['A','B','C','D','E','F','G'];
-    const norm = s => (s??'').toString().replace(/\s+/g,' ').trim()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[“”"']/g,'').toLowerCase();
-    const escapeHtml = s => (s??'').toString().replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;', '"':'&quot;', "'":'&#39;' }[m]));
+  (() => {
+    // ===== Shortcuts =====
+    const $ = (s)=>document.querySelector(s);
+    const byId = (id)=>document.getElementById(id);
+    const alertBox = byId('alert');
 
-    // LocalStorage keys
-    const LS_BOOK='qu_book', LS_WRONG='qu_wrong', LS_PREF='qu_pref', LS_SESS='qu_sess', LS_FC='qu_flash', LS_STATS='qu_stats', LS_CUR='qu_current';
-    const loadLS=(k,def)=>{ try{return JSON.parse(localStorage.getItem(k)) ?? def;}catch{return def;} };
-    const saveLS=(k,v)=>localStorage.setItem(k, JSON.stringify(v));
-
-    // Leitner intervals (ngày)
-    const BOX_DAYS=[0,1,3,7,14,30];
-
-    // State
-    const S = {
-      subjects: [],
-      subjIdx: 0,
-      mode: 'practice',
-      order: 'shuffle',
-      filter: 'all',
-      search: '',
-      pool: [],
-      cur: 0,
-      answers: {},
-      checked: {},
-      bookmarks: loadLS(LS_BOOK,{}),
-      wrongBank: loadLS(LS_WRONG,[]),
-      prefs: loadLS(LS_PREF,{ autoNext:false, autoExplain:true, shuffleOpts:false }),
-      timer:null, seconds:0,
-      fc: loadLS(LS_FC, { cards:{} }),
-      stats: loadLS(LS_STATS, { sessions:[] })
+    const showAlert=(msg,type='info')=>{
+      const base='mb-2 p-3 rounded-lg border text-sm';
+      const style= type==='error' ? 'bg-red-50 border-red-200 text-red-700'
+                  : type==='success' ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                  : 'bg-slate-50 border-slate-200 text-slate-700';
+      alertBox.className= base+' '+style;
+      alertBox.textContent = msg;
+      alertBox.classList.remove('hidden');
+      clearTimeout(showAlert._t); showAlert._t=setTimeout(()=>alertBox.classList.add('hidden'),3000);
     };
 
-    // ===== Parser =====
-    function parseLegacyText(raw){
-      if(!raw) return [];
-      const reQ=/(Câu\s*\d+\s*:[\s\S]*?(?=(?:\n[-=]{3,}\s*\n)|(?:\n\s*Câu\s*\d+\s*:)|\s*$))/gi;
-      const all=[]; let m; while((m=reQ.exec(raw))) all.push(m[0]);
-      const qs=[];
-      for(const b of all){
-        const head=/Câu\s*\d+\s*:\s*([\s\S]*?)\n\s*Đáp\s*án\s*đúng\s*[:：]\s*([^\n]+)\s*/i.exec(b);
-        if(!head) continue;
-        const qText=head[1].trim();
-        const correctText=head[2].trim();
+    const shuffle=(arr)=>{const a=arr.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a;};
+    const escapeHTML=(s)=>String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+    const deAccent=(s)=> s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    const norm=(s)=> deAccent(String(s||'')).replace(/\s+/g,' ').replace(/[^\p{L}\p{N}]+/gu,'').toLowerCase().trim();
 
-        let optPart=/Tất\s*cả\s*đáp\s*án\s*[:：]\s*([\s\S]*)/i.exec(b)?.[1] ?? '';
-        const lines=optPart.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+    // ===== State =====
+    const S = {
+      subjects: [],
+      raw: new Map(),        // subject -> raw text
+      questions: [],         // current working set
+      current: 0,
+      answers: new Map(),    // qIndex -> k (index in shuffled order)
+      ansOrder: new Map(),   // qIndex -> [permutation]
+      mode: 'practice',
+      timerId: null,
+      timerSec: 0,
+      lastWrongKey: '',      // for flashcards
+    };
 
-        const opts=[];
-        for(const ln of lines){
-          const mm=/^[A-ZĐ]\.\s*(.+)$/.exec(ln);
-          if(!mm) continue;
-          let text=mm[1].trim();
-          const hasTick=/✓/.test(text);
-          text=text.replace(/^✓\s*/,'').replace(/\s*✓\s*$/,'').trim();
-          opts.push({text, hasTick});
+    // ===== Views =====
+    const V = {
+      setup: byId('view-setup'),
+      quiz: byId('view-quiz'),
+      result: byId('view-result'),
+      flash: byId('view-flash'),
+    };
+    function showView(name){
+      V.setup.classList.toggle('hidden', name!=='setup');
+      V.quiz.classList.toggle('hidden', name!=='quiz');
+      V.result.classList.toggle('hidden', name!=='result');
+      V.flash.classList.toggle('hidden', name!=='flash');
+    }
+
+    // ===== Parse =====
+    function parseQuestions(raw){
+      if(!raw||typeof raw!=='string') return [];
+      raw = raw.replace(/\r\n/g,'\n');
+
+      const blocks = raw.match(/Câu\s+\d+:[\s\S]*?(?=\n[-=]{5,}\n|$)/g) || [];
+      const items = [];
+
+      for(const block of blocks){
+        const m = block.match(/Câu\s+\d+:\s*([\s\S]*?)\nĐáp án đúng:\s*([\s\S]*?)(?:\n|$)/);
+        if(!m) continue;
+        const qText = m[1].trim();
+        const correctText = m[2].trim();
+
+        const optionsArea = (block.match(/Tất cả đáp án:\s*([\s\S]*)$/) || [,''])[1];
+        const optMatches = [...optionsArea.matchAll(/^\s*([A-D])\.\s*(?:[✓\u2713]\s*)?(.+?)\s*$/gm)];
+        const options = optMatches.map(mm => mm[2].trim());
+        if(options.length<2) continue;
+
+        // correct by ✓ mark
+        let correctIndex = -1;
+        const marked = [...optionsArea.matchAll(/^\s*([A-D])\.\s*[✓\u2713]/gm)][0];
+        if(marked){ correctIndex = 'ABCD'.indexOf(marked[1]); }
+
+        // fallback by comparing text
+        if(correctIndex<0){
+          const target = norm(correctText);
+          correctIndex = options.findIndex(o=>{
+            const no = norm(o);
+            return no===target || no.includes(target) || target.includes(no);
+          });
         }
-        if(!opts.length) continue;
+        if(correctIndex<0) correctIndex = 0;
 
-        let idx=opts.findIndex(o=>o.hasTick);
-        if(idx<0){
-          const nc=norm(correctText);
-          idx=opts.findIndex(o=>norm(o.text)===nc);
-          if(idx<0) idx=opts.findIndex(o=>norm(o.text).includes(nc) || nc.includes(norm(o.text)));
-          if(idx<0) idx=0;
-        }
-        qs.push({ text:qText, options:opts.map(o=>o.text), answer:idx, explain:'' });
+        items.push({ text:qText, options, correctIndex, correctText });
       }
-      return qs;
-    }
-    function inferSubject(raw,fallback){ const m=/MÔN\s*[:：]\s*([^\n]+)/i.exec(raw||''); return m?m[1].trim():fallback||'Môn'; }
-
-    async function loadSubjects(){
-      if(window.quizData?.getAll){
-        try{
-          const arr=window.quizData.getAll();
-          const subs = arr.map(it=>({ name: it.subject, questions: parseLegacyText(String(it.text||'')) }))
-                         .filter(s=>s.questions.length);
-          if(subs.length) return subs;
-        }catch(e){}
-      }
-      const rawKeys = Object.keys(window).filter(k=>/^RAW_/.test(k));
-      if(rawKeys.length){
-        const list=[];
-        for(const k of rawKeys){
-          const raw=String(window[k]||''); const suf=k.replace(/^RAW_/,'');
-          const name=window['SUBJECT_'+suf] || inferSubject(raw,suf);
-          list.push({name, questions:parseLegacyText(raw)});
-        }
-        const subs=list.filter(s=>s.questions.length);
-        if(subs.length) return subs;
-      }
-      try{ // fallback data.txt
-        const r=await fetch('data.txt',{cache:'no-store'});
-        if(r.ok){
-          const txt=await r.text();
-          const q1=parseLegacyText(txt);
-          if(q1.length) return [{name: inferSubject(txt,'Môn'), questions:q1}];
-          const j=JSON.parse(txt);
-          if(Array.isArray(j?.subjects)) return j.subjects;
-        }
-      }catch{}
-      return [];
+      return items;
     }
 
-    // ===== Elements =====
-    // Header
-    const btnMenu=byId('btnMenu'), btnClose=byId('btnClose'), drawer=byId('drawer'), scrim=byId('scrim'), btnTheme=byId('btnTheme'), titleSub=byId('titleSub'), btnResume=byId('btnResume');
+    // ===== Progress & Timer =====
+    const quizMeta = byId('quizMeta');
+    const progressBar = byId('progressBar');
+    const timerEl = byId('timer');
 
-    // Setup
-    const selSubject=byId('selSubject'), selMode=byId('selMode'), selCount=byId('selCount'), selOrder=byId('selOrder'), selFilter=byId('selFilter'), txtSearch=byId('txtSearch');
-    const warn=byId('warn');
-
-    // Play progress (md+)
-    const progress=byId('progress'), progText=byId('progText'), timerBox=byId('timerBox'), timerLbl=byId('timer'), minimap=byId('minimap');
-    // Play progress (mobile)
-    const progressSm=byId('progressSm'), progTextSm=byId('progTextSm'), timerBoxSm=byId('timerBoxSm'), timerLblSm=byId('timerSm');
-
-    // Play card
-    const qCard=byId('qCard'), qTitle=byId('qTitle'), optList=byId('optList'), expWrap=byId('expWrap'), expText=byId('expText');
-    const btnPrev=byId('btnPrev'), btnNext=byId('btnNext'), btnCheck=byId('btnCheck'), btnReveal=byId('btnReveal'), btnSubmit=byId('btnSubmit'), btnBookmark=byId('btnBookmark'), btnShuffleOpts=byId('btnShuffleOpts');
-
-    // Result
-    const resultCard=byId('resultCard'), donut=byId('donut'), scoreText=byId('scoreText'), timeText=byId('timeText');
-
-    // Settings
-    const stAutoNext=byId('stAutoNext'), stAutoExplain=byId('stAutoExplain'), stShuffleOpts=byId('stShuffleOpts');
-
-    // Flashcards
-    const fcFront=byId('fcFront'), fcBack=byId('fcBack'), fcCard=byId('fcCard'), fcEmpty=byId('fcEmpty'), fcStatsMini=byId('fcStatsMini');
-
-    // ===== Helpers =====
-    const guard = (btn,fn)=> ()=>{ if(btn.disabled) return; btn.disabled=true; setTimeout(()=>btn.disabled=false,210); fn(); };
-    const vibrate = ms=> ('vibrate' in navigator)? navigator.vibrate(ms): void 0;
-
-    // ===== Drawer =====
-    function openDrawer(){ drawer.classList.add('open'); scrim.classList.add('show'); }
-    function closeDrawer(){ drawer.classList.remove('open'); scrim.classList.remove('show'); }
-
-    // ===== Pool builder =====
-    function makePool(){
-      const subj=S.subjects[S.subjIdx]; if(!subj) return [];
-      let arr=subj.questions.map((q,idx)=>({...q,_id:idx}));
-      const key=norm(S.search);
-      if(key){ arr=arr.filter(q=> norm(q.text).includes(key) || q.options.some(o=>norm(o).includes(key))); }
-      if(S.filter==='bookmarked'){
-        arr=arr.filter(q=> !!S.bookmarks[`${S.subjIdx}:${q._id}`]);
-      }else if(S.filter==='wrong'){
-        const set=new Set(S.wrongBank.map(x=>`${x.s}:${x.q}`));
-        arr=arr.filter(q=> set.has(`${S.subjIdx}:${q._id}`));
-      }else if(S.filter==='new'){
-        const doneSet=new Set(Object.keys(loadLS(LS_SESS,{})));
-        arr=arr.filter(q=> !doneSet.has(`${S.subjIdx}:${q._id}`));
-      }
-      if(S.order==='shuffle') arr.sort(()=>Math.random()-.5);
-
-      let need = selCount.value==='all' ? arr.length : Math.min(+selCount.value||10, arr.length);
-      return arr.slice(0,need);
+    function renderProgress(){
+      const total = S.questions.length;
+      const answered = S.answers.size;
+      const pct = Math.round((answered/Math.max(total,1))*100);
+      progressBar.style.width = pct+'%';
+      quizMeta.textContent = `Câu ${S.current+1}/${total}`;
     }
 
-    // ===== Minimap & progress =====
-    function renderMinimap(){
-      minimap.innerHTML='';
-      S.pool.forEach((q,idx)=>{
-        const d=document.createElement('button');
-        d.className='dot'; d.title='Câu '+(idx+1);
-        if(S.checked[idx]) d.classList.add('done', S.answers[idx]===q.answer?'correct':'wrong');
-        if(idx===S.cur) d.classList.add('active');
-        d.onclick=()=>{ S.cur=idx; renderQuestion(); };
-        minimap.appendChild(d);
-      });
+    function startTimer(minutes = Math.max(10, Math.ceil(S.questions.length/2)) ){
+      stopTimer();
+      S.timerSec = minutes*60;
+      renderTimer();
+      S.timerId = setInterval(()=>{
+        S.timerSec--;
+        renderTimer();
+        if(S.timerSec<=0){ stopTimer(); submitQuiz(); }
+      },1000);
+    }
+    function stopTimer(){ if(S.timerId) clearInterval(S.timerId); S.timerId=null; }
+    function renderTimer(){
+      const s = Math.max(0, S.timerSec);
+      const mm = String(Math.floor(s/60)).padStart(2,'0');
+      const ss = String(s%60).padStart(2,'0');
+      timerEl.textContent = S.mode==='exam' ? `${mm}:${ss}` : '--:--';
     }
 
-    function syncProgressBars(){
-      const total=S.pool.length||0; const cur=S.cur+1;
-      const pct = total? (Math.min(cur,total)/total)*100 : 0;
-      progress.style.width = pct+'%';
-      progressSm.style.width = pct+'%';
-      progText.textContent = `${Math.min(cur,total)} / ${total}`;
-      progTextSm.textContent = progText.textContent;
-    }
+    // ===== Quiz Render =====
+    const qTitle = byId('qTitle');
+    const qText = byId('qText');
+    const qOptions = byId('qOptions');
 
-    function clearMarks(){
-      optList.querySelectorAll('label').forEach(el=>el.classList.remove('is-correct','is-wrong'));
-      optList.querySelectorAll('.badge').forEach(el=>el.remove());
-    }
-
-    function markCurrent(fromPick=false){
-      const q=S.pool[S.cur]; const pick=S.answers[S.cur];
-      clearMarks();
-      const cards=optList.querySelectorAll('label');
-      if(cards[q.answer]) {
-        cards[q.answer].classList.add('is-correct');
-        const b=document.createElement('div'); b.className='badge ok'; b.textContent='✓ Đúng'; cards[q.answer].appendChild(b);
+    function ensureAnsOrder(idx, allowShuffle){
+      if(!S.ansOrder.has(idx)){
+        const n = S.questions[idx].options.length;
+        const base = Array.from({length:n},(_,i)=>i);
+        S.ansOrder.set(idx, allowShuffle ? shuffle(base) : base);
       }
-      if(pick!=null && pick!==q.answer && cards[pick]) {
-        cards[pick].classList.add('is-wrong');
-        const b=document.createElement('div'); b.className='badge bad'; b.textContent='Sai'; cards[pick].appendChild(b);
-      }
-      if(fromPick && !S.checked[S.cur]){
-        S.checked[S.cur]=true;
-        if(pick!==q.answer) { addWrong(q._id); vibrate(40); } else { vibrate(15); }
-        if(S.mode!=='exam' && S.prefs.autoExplain && q.explain) expWrap.open = true;
-      }
-      renderMinimap();
-      persistCurrent();
+      return S.ansOrder.get(idx);
     }
 
     function renderQuestion(){
-      const q=S.pool[S.cur];
-      if(!q){ qCard.classList.add('hidden'); return; }
-      qCard.classList.remove('hidden');
+      const i = S.current, total=S.questions.length;
+      const q = S.questions[i]; if(!q) return;
 
-      qTitle.textContent = `Câu ${S.cur+1}: ${q.text}`;
-      expText.textContent = q.explain||'';
-      expWrap.open = false;
+      qTitle.textContent='Chọn đáp án đúng:';
+      qText.textContent=q.text;
 
-      // options
-      const options = S.prefs.shuffleOpts ? shuffleWithAnswer(q) : q.options.map((o,i)=>({text:o, idx:i}));
-      optList.innerHTML='';
-      options.forEach((o,orderIdx)=>{
-        const id=`q${S.cur}-o${orderIdx}`;
-        const row=document.createElement('div'); row.className='opt';
-        const inp=document.createElement('input'); inp.type='radio'; inp.name=`q${S.cur}`; inp.id=id; inp.value=o.idx; inp.checked=(S.answers[S.cur]===o.idx);
-        const lb=document.createElement('label'); lb.setAttribute('for',id);
-        const inner=document.createElement('div'); inner.className='flex gap-3 items-start';
-        const lead=document.createElement('div'); lead.className='lead'; lead.textContent=letters[orderIdx];
-        const txt=document.createElement('div'); txt.className='flex-1 text-[15px]'; txt.textContent=o.text;
-        inner.appendChild(lead); inner.appendChild(txt); lb.appendChild(inner);
-        row.appendChild(inp); row.appendChild(lb); optList.appendChild(row);
+      const order = ensureAnsOrder(i, byId('chkShuffleA').checked);
+      const chosen = S.answers.get(i);
 
-        inp.onchange=()=>{
-          S.answers[S.cur]=o.idx;
-          saveAnswerSeen(S.subjIdx, q._id);
-          if(S.mode==='practice'){ markCurrent(true); if(S.prefs.autoNext && S.cur<S.pool.length-1){ setTimeout(()=>{ S.cur++; renderQuestion(); }, 110); } }
-          persistCurrent();
-        };
+      qOptions.innerHTML='';
+      order.forEach((optIdx,k)=>{
+        const id = `q${i}_o${k}`;
+        const checked = chosen===k;
+        const label = document.createElement('label');
+        label.className = [
+          'block rounded-xl border p-3 transition',
+          checked ? 'border-brand-400 ring-2 ring-brand-300 bg-brand-50' : 'border-slate-300 hover:bg-slate-50'
+        ].join(' ');
+        label.innerHTML = `
+          <div class="flex items-start gap-3">
+            <input type="radio" name="q${i}" id="${id}" class="mt-1 w-5 h-5 text-brand-600 border-slate-300 focus:ring-brand-400"
+                   ${checked?'checked':''} data-k="${k}">
+            <div class="text-[15px] leading-relaxed">${escapeHTML(q.options[optIdx])}</div>
+          </div>
+        `;
+        qOptions.appendChild(label);
       });
 
-      // bookmark
-      const key=`${S.subjIdx}:${q._id}`;
-      btnBookmark.textContent = S.bookmarks[key] ? '🔖 Đã đánh dấu' : '🔖';
-
-      syncProgressBars();
-      if(S.mode!=='exam' && S.checked[S.cur]) markCurrent(false);
-      renderMinimap();
-      window.scrollTo({top:0,behavior:'smooth'});
-      persistCurrent();
+      renderProgress();
     }
 
-    function shuffleWithAnswer(q){
-      const arr=q.options.map((t,i)=>({text:t, idx:i}));
-      for(let i=arr.length-1;i>0;i--){ const j=(Math.random()* (i+1))|0; [arr[i],arr[j]]=[arr[j],arr[i]]; }
-      return arr;
+    // ===== Start / Submit / Result =====
+    function startQuiz(quick=false){
+      const subj = byId('selSubject').value;
+      if(!subj || !S.raw.has(subj)) { showAlert('Không đọc được dữ liệu gốc. Hãy giữ nguyên data.js và chọn môn.', 'error'); return; }
+      S.mode = byId('selMode').value;
+
+      let qs = parseQuestions(S.raw.get(subj));
+      if(!qs.length){ showAlert('Không trích xuất được câu hỏi từ dữ liệu.', 'error'); return; }
+
+      // số câu
+      let need = byId('selCount').value==='all' ? qs.length : Number(byId('selCount').value||10);
+      need = Math.min(need, qs.length);
+
+      if(byId('chkShuffleQ').checked || quick) qs = shuffle(qs);
+      S.questions = qs.slice(0, need);
+
+      S.current=0; S.answers.clear(); S.ansOrder.clear();
+
+      showView('quiz');
+      renderQuestion();
+
+      if(S.mode==='exam') startTimer(); else { stopTimer(); renderTimer(); }
+      showAlert('Bắt đầu làm bài. Chúc bạn làm tốt!','success');
     }
 
-    function addWrong(qid){
-      const key=`${S.subjIdx}:${qid}`;
-      const exists=S.wrongBank.some(x=>`${x.s}:${x.q}`===key);
-      if(!exists){ S.wrongBank.unshift({s:S.subjIdx,q:qid, ts:Date.now()}); S.wrongBank=S.wrongBank.slice(0,800); saveLS(LS_WRONG,S.wrongBank); }
-    }
-    function saveAnswerSeen(s, q){ const sess=loadLS(LS_SESS,{}); sess[`${s}:${q}`]=1; saveLS(LS_SESS,sess); }
-
-    // ===== Submit (exam) =====
-    function submitAll(){
-      if(S.mode!=='exam') return;
-      const total=S.pool.length; let correct=0; const wrongList=[];
-      for(let i=0;i<total;i++){
-        const q=S.pool[i];
-        if(S.answers[i]===q.answer) correct++; else wrongList.push({s:S.subjIdx,q:q._id, ts:Date.now()});
-        saveAnswerSeen(S.subjIdx, q._id);
-      }
-      S.wrongBank=[...wrongList, ...S.wrongBank].slice(0,800); saveLS(LS_WRONG,S.wrongBank);
+    function submitQuiz(){
       stopTimer();
-      const pct=Math.round(correct*100/Math.max(1,total));
-      donut.style.setProperty('--p', `${pct*3.6}deg`);
-      scoreText.textContent=`Đúng ${correct}/${total} câu (${pct}%).`;
-      timeText.textContent = S.seconds? `Thời gian: ${Math.floor(S.seconds/60)}m ${S.seconds%60}s` : '';
-      pushSessionStat({ type:'exam', subj:S.subjects[S.subjIdx]?.name||'', n:total, correct, secs:S.seconds });
-      resultCard.classList.remove('hidden'); qCard.classList.add('hidden'); window.scrollTo({top:0,behavior:'smooth'});
-      clearCurrent();
-    }
-
-    // ===== Timer & Stats =====
-    function startTimer(){ S.seconds=0; setTimerText(); timerBox.hidden=false; timerBoxSm.hidden=false; S.timer=setInterval(()=>{ S.seconds++; setTimerText(); persistCurrent(); },1000); }
-    function stopTimer(){ if(S.timer){ clearInterval(S.timer); S.timer=null; } timerBox.hidden=true; timerBoxSm.hidden=true; }
-    function setTimerText(){ const m=String(Math.floor(S.seconds/60)).padStart(2,'0'), s=String(S.seconds%60).padStart(2,'0'); timerLbl.textContent=`${m}:${s}`; timerLblSm.textContent=`${m}:${s}`; }
-
-    function pushSessionStat(rec){
-      S.stats.sessions.unshift({...rec, at:Date.now()}); S.stats.sessions = S.stats.sessions.slice(0,200);
-      saveLS(LS_STATS, S.stats);
-    }
-
-    function renderStats(){
-      const wrap=byId('statsBody'); wrap.innerHTML='';
-      const total=S.stats.sessions.length;
-      const avgAcc = Math.round((
-        S.stats.sessions.reduce((a,c)=> a + (c.correct??0)/(c.n||1),0) / Math.max(1,total)
-      )*100);
-      const totalQ = S.stats.sessions.reduce((a,c)=> a+(c.n||0),0);
-      wrap.appendChild(cardStat(`
-        <div class="text-sm text-slate-500">Tổng phiên</div>
-        <div class="text-2xl font-bold">${total}</div>
-        <div class="text-sm text-slate-500 mt-1">Câu đã làm: ${totalQ}</div>
-        <div class="text-sm text-slate-500">Độ chính xác TB: ${isNaN(avgAcc)?'-':avgAcc+'%'}</div>
-      `));
-      const recent = S.stats.sessions.slice(0,5).map(s=>`<div class="flex justify-between text-sm"><div>${new Date(s.at).toLocaleString()}</div><div>${s.type} • ${s.correct}/${s.n}</div></div>`).join('');
-      wrap.appendChild(cardStat(`<div class="font-semibold mb-1">Gần đây</div>${recent||'<div class="text-sm text-slate-500">Chưa có dữ liệu.</div>'}`));
-      wrap.appendChild(cardStat(`
-        <div class="text-sm text-slate-500">Câu sai đang lưu</div>
-        <div class="text-2xl font-bold">${S.wrongBank.length}</div>
-        <div class="text-xs text-slate-500 mt-1">Dùng mục "Ôn sai" để luyện lại</div>
-      `));
-    }
-    function cardStat(html){
-      const d=document.createElement('div'); d.className='rounded-xl border border-slate-200 dark:border-slate-800 p-3'; d.innerHTML=html; return d;
-    }
-
-    // ===== Review Wrong =====
-    function renderWrong(){
-      const box=byId('wrongList'); box.innerHTML='';
-      if(!S.wrongBank.length){ box.innerHTML='<div class="text-sm text-slate-500">Không có câu sai nào gần đây.</div>'; return; }
-      const by={};
-      for(const w of S.wrongBank){
-        const subj=S.subjects[w.s]; if(!subj) continue;
-        by[w.s]=by[w.s]||[]; const q=subj.questions[w.q]; if(!q) continue;
-        by[w.s].push({qid:w.q, q});
+      const total = S.questions.length;
+      let correct=0; const wrong=[];
+      for(let i=0;i<total;i++){
+        const q = S.questions[i];
+        const order = ensureAnsOrder(i,false);
+        const chosenK = S.answers.get(i);
+        const chosenReal = typeof chosenK==='number' ? order[chosenK] : -1;
+        if(chosenReal===q.correctIndex) correct++;
+        else wrong.push({i,q,chosenK,order});
       }
-      for(const sIdx of Object.keys(by)){
-        const group=document.createElement('div');
-        group.className='rounded-xl border border-slate-200 dark:border-slate-800 p-3';
-        const h=document.createElement('div'); h.className='font-semibold mb-2'; h.textContent=S.subjects[sIdx]?.name||'Môn';
-        group.appendChild(h);
-        by[sIdx].slice(0,200).forEach((it,i)=>{
-          const row=document.createElement('details'); row.className='rounded-lg border border-slate-200 dark:border-slate-700 p-2';
-          const sum=document.createElement('summary'); sum.className='cursor-pointer text-sm font-medium'; sum.textContent=`${i+1}. ${it.q.text}`;
-          const opts=it.q.options.map((o,k)=>`<div class="mt-1 ${k===it.q.answer?'text-green-700 dark:text-green-300 font-medium':''}">${letters[k]}. ${escapeHtml(o)}</div>`).join('');
-          const ans=document.createElement('div'); ans.className='mt-2 text-sm'; ans.innerHTML=`<div class="font-semibold">Đáp án đúng: <span class="text-green-600 dark:text-green-400">${letters[it.q.answer]}</span></div>${opts}`;
-          row.appendChild(sum); row.appendChild(ans); group.appendChild(row);
+
+      // kết quả
+      const pct = Math.round((correct/Math.max(total,1))*100);
+      byId('scoreLine').textContent = `Đúng ${correct}/${total} câu (${pct}%).`;
+      byId('scoreBar').style.width = pct+'%';
+
+      // lưu wrong vào localStorage cho flashcards
+      try{
+        const subj = byId('selSubject').value;
+        const key = 'wrong_'+norm(subj);
+        S.lastWrongKey = key;
+        const pack = wrong.map(({q})=>({t:q.text, a:q.options[q.correctIndex]}));
+        localStorage.setItem(key, JSON.stringify(pack));
+      }catch(e){}
+
+      // render danh sách sai
+      const box = byId('wrongList');
+      const wrap = byId('wrongItems'); wrap.innerHTML='';
+      if(wrong.length){
+        box.classList.remove('hidden');
+        wrong.forEach(({i,q,chosenK,order})=>{
+          const chosenReal = typeof chosenK==='number' ? order[chosenK] : -1;
+          const chosenText = chosenReal>=0 ? q.options[chosenReal] : '(chưa chọn)';
+          const correctText = q.options[q.correctIndex];
+
+          const div = document.createElement('div');
+          div.className='border border-slate-200 rounded-xl p-3';
+          div.innerHTML = `
+            <div class="text-sm font-medium mb-1">Câu ${i+1}</div>
+            <div class="text-[15px] mb-2">${escapeHTML(q.text)}</div>
+            <div class="text-sm"><span class="font-medium text-red-600">Bạn chọn:</span> ${escapeHTML(chosenText)}</div>
+            <div class="text-sm"><span class="font-medium text-emerald-700">Đáp án đúng:</span> ${escapeHTML(correctText)}</div>
+          `;
+          wrap.appendChild(div);
         });
-        box.appendChild(group);
-      }
-    }
-
-    // ===== Flashcards (Leitner) =====
-    let fcQueue=[]; let fcCur=null;
-
-    function fcKey(s,q){ return `${s}:${q}`; }
-    function fcEnsureCard(s,q){
-      const k=fcKey(s,q);
-      if(!S.fc.cards[k]) S.fc.cards[k]={ box:1, due:Date.now() };
-    }
-    function fcBuildQueue(){
-      const subj=S.subjects[S.subjIdx]; if(!subj){ fcQueue=[]; return; }
-      const now=Date.now();
-      const due = Object.entries(S.fc.cards)
-        .filter(([k,v])=> k.startsWith(S.subjIdx+':') && (v.due||0)<=now)
-        .map(([k,v])=> ({k, s:+k.split(':')[0], q:+k.split(':')[1], box:v.box, due:v.due}));
-      if(!due.length){
-        const ids = subj.questions.map((_,i)=>i);
-        ids.sort(()=>Math.random()-.5);
-        fcQueue = ids.slice(0, Math.min(20, ids.length)).map(q=>({s:S.subjIdx,q,isNew:true}));
       }else{
-        due.sort(()=>Math.random()-.5);
-        fcQueue = due.slice(0, Math.min(30, due.length));
-      }
-    }
-    function fcRenderStatsMini(){
-      const now=Date.now();
-      const due=Object.entries(S.fc.cards).filter(([k,v])=>k.startsWith(S.subjIdx+':') && (v.due||0)<=now).length;
-      const total=Object.keys(S.fc.cards).filter(k=>k.startsWith(S.subjIdx+':')).length;
-      fcStatsMini.textContent = `Đến hạn: ${due} • Tổng: ${total}`;
-    }
-    function fcLoadNext(){
-      if(!fcQueue.length){ fcBuildQueue(); }
-      if(!fcQueue.length){ fcEmpty.classList.remove('hidden'); fcCard.classList.add('hidden'); fcRenderStatsMini(); return; }
-      fcEmpty.classList.add('hidden'); fcCard.classList.remove('hidden');
-      fcCur = fcQueue.shift();
-      const subj=S.subjects[fcCur.s]; const q=subj.questions[fcCur.q];
-      fcFront.textContent = q.text;
-      fcBack.innerHTML = `<div class="text-green-600 dark:text-green-400 font-semibold mb-1">Đáp án: ${letters[q.answer]}</div>` +
-        q.options.map((o,i)=>`<div class="mt-1 ${i===q.answer?'text-green-700 dark:text-green-300 font-medium':''}">${letters[i]}. ${escapeHtml(o)}</div>`).join('');
-      fcBack.classList.add('hidden');
-      fcRenderStatsMini();
-    }
-    function fcRate(type){
-      if(!fcCur) return;
-      fcEnsureCard(fcCur.s, fcCur.q);
-      const k=fcKey(fcCur.s, fcCur.q);
-      const c=S.fc.cards[k];
-      if(type==='again'){ c.box=1; }
-      if(type==='good'){ c.box=Math.min(5, (c.box||1)+1); }
-      if(type==='easy'){ c.box=Math.min(5, (c.box||1)+2); }
-      const days=BOX_DAYS[c.box]??1; c.due = Date.now() + days*86400*1000;
-      saveLS(LS_FC,S.fc);
-      pushSessionStat({ type:'flash', subj:S.subjects[S.subjIdx]?.name||'', n:1, correct: (type!=='again')?1:0, secs:0 });
-      fcLoadNext();
-    }
-
-    // ===== Router =====
-    function go(id){
-      $$('main > section').forEach(s=>s.classList.add('hidden'));
-      byId(id)?.classList.remove('hidden');
-      window.scrollTo({top:0,behavior:'smooth'});
-      if(id==='review') renderWrong();
-      if(id==='stats') renderStats();
-      if(id==='flash'){ fcBuildQueue(); fcLoadNext(); }
-      closeDrawer();
-    }
-
-    // ===== Touch swipe & long-press =====
-    let tStartX=0, tStartY=0, lpTimer=null;
-    function attachTouch(){
-      const el = byId('qCard');
-      if(!el) return;
-      el.addEventListener('touchstart', e=>{
-        const t=e.touches[0]; tStartX=t.clientX; tStartY=t.clientY;
-        clearTimeout(lpTimer);
-        lpTimer=setTimeout(()=>{ byId('expWrap').open = true; }, 400); // long-press mở giải thích
-      }, {passive:true});
-      el.addEventListener('touchmove', e=>{ clearTimeout(lpTimer); }, {passive:true});
-      el.addEventListener('touchend', e=>{
-        clearTimeout(lpTimer);
-        const t=e.changedTouches[0]; const dx=t.clientX-tStartX; const dy=t.clientY-tStartY;
-        if(Math.abs(dx)>60 && Math.abs(dy)<50){
-          if(dx<0 && S.cur<S.pool.length-1){ S.cur++; renderQuestion(); }
-          else if(dx>0 && S.cur>0){ S.cur--; renderQuestion(); }
-        }
-      });
-    }
-
-    // ===== Persist current session =====
-    function persistCurrent(){
-      const snapshot = {
-        subjIdx:S.subjIdx, mode:S.mode, order:S.order, filter:S.filter, search:S.search,
-        poolIds:S.pool.map(q=>q._id), cur:S.cur, answers:S.answers, checked:S.checked, seconds:S.seconds
-      };
-      saveLS(LS_CUR, snapshot);
-      btnResume.classList.remove('hidden');
-    }
-    function clearCurrent(){
-      localStorage.removeItem(LS_CUR);
-      btnResume.classList.add('hidden');
-    }
-    function tryResume(){
-      const snap=loadLS(LS_CUR,null);
-      if(!snap || !S.subjects.length) return false;
-      if(!S.subjects[snap.subjIdx]) return false;
-      S.subjIdx=snap.subjIdx; S.mode=snap.mode; S.order=snap.order; S.filter=snap.filter; S.search=snap.search;
-      const subj=S.subjects[S.subjIdx];
-      S.pool = snap.poolIds.map(id=> ({...subj.questions[id], _id:id})).filter(Boolean);
-      S.cur = Math.min(snap.cur||0, S.pool.length-1);
-      S.answers = snap.answers||{}; S.checked = snap.checked||{}; S.seconds=snap.seconds||0;
-      setupBadges();
-      if(S.mode==='exam'){ setTimerText(); timerBox.hidden=false; timerBoxSm.hidden=false; }
-      resultCard.classList.add('hidden'); qCard.classList.remove('hidden');
-      renderQuestion(); go('play'); return true;
-    }
-
-    // ===== Start session =====
-    function setupBadges(){
-      byId('badgeSubj')?.textContent = S.subjects[S.subjIdx]?.name || 'Môn';
-      byId('badgeMode')?.textContent = S.mode==='study'?'Học': S.mode==='practice'?'Luyện tập':'Thi thử';
-      titleSub.textContent = S.subjects[S.subjIdx]?.name || 'Quiz Ultra';
-      btnCheck.classList.toggle('hidden', S.mode!=='practice');
-      btnReveal.classList.toggle('hidden', S.mode!=='study');
-      btnSubmit.classList.toggle('hidden', S.mode!=='exam');
-    }
-
-    function startSession(){
-      S.subjIdx = selSubject.selectedIndex;
-      S.mode = (selMode.value==='flash') ? 'practice' : selMode.value;
-      S.order = selOrder.value;
-      S.filter = selFilter.value;
-      S.search = txtSearch.value.trim();
-
-      S.pool = makePool();
-      S.cur=0; S.answers={}; S.checked={};
-      if(!S.pool.length){ warn.classList.remove('hidden'); go('setup'); return; }
-      warn.classList.add('hidden');
-
-      setupBadges();
-
-      if(S.mode==='exam'){ startTimer(); } else { stopTimer(); }
-      resultCard.classList.add('hidden'); qCard.classList.remove('hidden');
-      renderQuestion(); go('play'); attachTouch();
-    }
-
-    // ===== Events =====
-    document.addEventListener('DOMContentLoaded', async ()=>{
-      // Theme
-      on(btnTheme,'click',()=> document.documentElement.classList.toggle('dark'));
-      if(window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.classList.add('dark');
-
-      // Drawer
-      on(btnMenu,'click', openDrawer);
-      on(btnClose,'click', closeDrawer);
-      on(byId('scrim'),'click', closeDrawer);
-      $$('#drawer .navlink').forEach(b=> on(b,'click',()=> go(b.dataset.view)));
-      $$('.tabbtn').forEach(b=> on(b,'click',()=> go(b.dataset.view)));
-
-      // Header resume
-      on(btnResume,'click', ()=>{ if(!tryResume()) alert('Không có phiên trước để tiếp tục.'); });
-
-      // Setup actions
-      on(byId('btnStart'),'click', guard(byId('btnStart'), startSession));
-      on(byId('btnToFlash'),'click', ()=> go('flash'));
-      on(byId('btnReview'),'click', ()=> go('review'));
-
-      // Play actions
-      on(btnPrev,'click',guard(btnPrev, ()=>{ if(S.cur>0){ S.cur--; renderQuestion(); } }));
-      on(btnNext,'click',guard(btnNext, ()=>{ if(S.cur<S.pool.length-1){ S.cur++; renderQuestion(); } }));
-      on(btnCheck,'click',guard(btnCheck, ()=> markCurrent(true)));
-      on(btnReveal,'click',guard(btnReveal, ()=>{ if(S.mode!=='study') return; clearMarks(); const q=S.pool[S.cur]; const cards=optList.querySelectorAll('label'); if(cards[q.answer]){ cards[q.answer].classList.add('is-correct'); const b=document.createElement('div'); b.className='badge ok'; b.textContent='✓ Đúng'; cards[q.answer].appendChild(b); } expWrap.open=true; }));
-      on(btnSubmit,'click',guard(btnSubmit, submitAll));
-      on(byId('btnRestart'),'click',guard(byId('btnRestart'), ()=> startSession()));
-      on(byId('btnGoReview'),'click',()=> go('review'));
-      on(btnBookmark,'click',guard(btnBookmark, ()=>{
-        const q=S.pool[S.cur]; const key=`${S.subjIdx}:${q._id}`;
-        S.bookmarks[key]=!S.bookmarks[key]; saveLS(LS_BOOK,S.bookmarks);
-        btnBookmark.textContent = S.bookmarks[key] ? '🔖 Đã đánh dấu' : '🔖';
-      }));
-      on(btnShuffleOpts,'click',guard(btnShuffleOpts, ()=> renderQuestion()));
-
-      // Review actions
-      on(byId('btnClearWrong'),'click',()=>{ if(confirm('Xóa danh sách câu sai?')){ S.wrongBank=[]; saveLS(LS_WRONG,S.wrongBank); renderWrong(); } });
-      on(byId('btnDrillWrong'),'click',()=>{
-        selFilter.value='wrong';
-        selMode.value='practice';
-        selCount.value='20';
-        startSession();
-        go('play');
-      });
-
-      // Flashcards actions
-      on(byId('fcShow'),'click',()=> fcBack.classList.toggle('hidden'));
-      on(byId('fcAgain'),'click',()=> fcRate('again'));
-      on(byId('fcGood'),'click',()=> fcRate('good'));
-      on(byId('fcEasy'),'click',()=> fcRate('easy'));
-      on(byId('fcNew'),'click',()=>{ const subj=S.subjects[S.subjIdx]; if(!subj) return; const ids = subj.questions.map((_,i)=>i).sort(()=>Math.random()-.5).slice(0,10); ids.forEach(q=> fcEnsureCard(S.subjIdx,q)); saveLS(LS_FC,S.fc); fcBuildQueue(); fcLoadNext(); });
-
-      // Stats actions
-      on(byId('btnExport'),'click',()=>{
-        const dump = JSON.stringify({
-          bookmarks:S.bookmarks, wrong:S.wrongBank, prefs:S.prefs, fc:S.fc, stats:S.stats, sess:loadLS(LS_SESS,{})
-        }, null, 2);
-        const blob = new Blob([dump], {type:'application/json'});
-        const url = URL.createObjectURL(blob);
-        const a=document.createElement('a'); a.href=url; a.download='quiz-ultra-progress.json'; a.click();
-        URL.revokeObjectURL(url);
-      });
-      on(byId('btnImport'),'click',async ()=>{
-        const inp=document.createElement('input'); inp.type='file'; inp.accept='application/json';
-        inp.onchange=async ()=>{ const f=inp.files?.[0]; if(!f) return; const text=await f.text(); try{ const obj=JSON.parse(text); if(obj.bookmarks) saveLS(LS_BOOK,obj.bookmarks); if(obj.wrong) saveLS(LS_WRONG,obj.wrong); if(obj.prefs) saveLS(LS_PREF,obj.prefs); if(obj.fc) saveLS(LS_FC,obj.fc); if(obj.stats) saveLS(LS_STATS,obj.stats); if(obj.sess) saveLS(LS_SESS,obj.sess); alert('Đã nhập tiến độ.'); location.reload(); }catch(e){ alert('File không hợp lệ.'); } };
-        inp.click();
-      });
-
-      // Settings
-      stAutoNext.checked = !!S.prefs.autoNext;
-      stAutoExplain.checked = !!S.prefs.autoExplain;
-      stShuffleOpts.checked = !!S.prefs.shuffleOpts;
-      on(byId('btnResetAll'),'click',()=>{ if(confirm('Xóa toàn bộ tiến độ?')){ [LS_BOOK,LS_WRONG,LS_PREF,LS_SESS,LS_FC,LS_STATS,LS_CUR].forEach(k=>localStorage.removeItem(k)); location.reload(); } });
-      on(stAutoNext,'change',()=>{ S.prefs.autoNext=stAutoNext.checked; saveLS(LS_PREF,S.prefs); });
-      on(stAutoExplain,'change',()=>{ S.prefs.autoExplain=stAutoExplain.checked; saveLS(LS_PREF,S.prefs); });
-      on(stShuffleOpts,'change',()=>{ S.prefs.shuffleOpts=stShuffleOpts.checked; saveLS(LS_PREF,S.prefs); });
-
-      // Load data
-      S.subjects = await loadSubjects();
-      if(!S.subjects.length){ warn.classList.remove('hidden'); selSubject.innerHTML='<option>Chưa có dữ liệu</option>'; }
-      else {
-        warn.classList.add('hidden');
-        selSubject.innerHTML='';
-        S.subjects.forEach((s,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=s.name||('Môn '+(i+1)); selSubject.appendChild(o); });
-        titleSub.textContent = 'Chọn môn và BẮT ĐẦU';
+        box.classList.add('hidden');
       }
 
-      // Resume button state
-      if(loadLS(LS_CUR,null)) btnResume.classList.remove('hidden');
+      showView('result');
+      showAlert('Đã chấm bài. Kéo xuống để xem các câu sai (nếu có).','success');
+    }
 
-      // Default view
-      go('setup');
-    });
+    // ===== Flashcards =====
+    let FC = { list:[], idx:0 };
+    function loadFlashcards(){
+      const subj = byId('selSubject').value;
+      if(!subj || !S.raw.has(subj)){ showAlert('Chưa chọn môn cho flashcards.','error'); return; }
 
+      const src = byId('flashSource').value;
+      let list=[];
+      if(src==='wrong'){
+        try{
+          const key = S.lastWrongKey || 'wrong_'+norm(subj);
+          list = JSON.parse(localStorage.getItem(key)||'[]');
+        }catch(e){ list=[]; }
+      }
+      if(!list.length){
+        // lấy tất cả câu của môn
+        const all = parseQuestions(S.raw.get(subj));
+        list = all.map(q=>({t:q.text, a:q.options[q.correctIndex]}));
+      }
+      FC.list = list; FC.idx=0;
+      renderFlash();
+    }
+    function renderFlash(){
+      const n = FC.list.length;
+      if(!n){ byId('flashMeta').textContent='Không có thẻ.'; byId('flashQ').textContent='—'; byId('flashA').classList.add('hidden'); byId('flashA').textContent=''; return; }
+      const cur = FC.list[FC.idx];
+      byId('flashMeta').textContent = `Thẻ ${FC.idx+1}/${n}`;
+      byId('flashQ').textContent = cur.t;
+      byId('flashA').textContent = cur.a;
+      byId('flashA').classList.add('hidden');
+    }
+
+    // ===== Bindings =====
+    function bind(){
+      // quiz options (delegation)
+      byId('qOptions').addEventListener('change', (e)=>{
+        const input = e.target.closest('input[type=radio]');
+        if(!input) return;
+        const k = Number(input.dataset.k);
+        S.answers.set(S.current, k);
+        renderQuestion();
+      });
+
+      byId('btnPrev').addEventListener('click', ()=>{ S.current=Math.max(0,S.current-1); renderQuestion(); });
+      byId('btnNext').addEventListener('click', ()=>{ S.current=Math.min(S.questions.length-1,S.current+1); renderQuestion(); });
+      byId('btnShuffleOne').addEventListener('click', ()=>{ S.ansOrder.delete(S.current); renderQuestion(); });
+      byId('btnSubmit').addEventListener('click', submitQuiz);
+
+      byId('btnStart').addEventListener('click', ()=>startQuiz(false));
+      byId('btnQuick').addEventListener('click', ()=>{ byId('selCount').value='10'; startQuiz(true); });
+
+      byId('btnRestart').addEventListener('click', ()=>{ showView('setup'); window.scrollTo({top:0,behavior:'smooth'}); });
+      byId('btnReviewWrong').addEventListener('click', ()=> byId('wrongList').classList.toggle('hidden'));
+
+      // nav
+      byId('navHome').addEventListener('click', ()=>{ stopTimer(); showView('setup'); });
+      byId('navFlash').addEventListener('click', ()=>{ stopTimer(); showView('flash'); loadFlashcards(); });
+
+      // flashcards
+      byId('flashSource').addEventListener('change', loadFlashcards);
+      byId('flashShuffle').addEventListener('click', ()=>{ FC.list = shuffle(FC.list); FC.idx=0; renderFlash(); });
+      byId('flashPrev').addEventListener('click', ()=>{ if(!FC.list.length) return; FC.idx=(FC.idx-1+FC.list.length)%FC.list.length; renderFlash(); });
+      byId('flashNext').addEventListener('click', ()=>{ if(!FC.list.length) return; FC.idx=(FC.idx+1)%FC.list.length; renderFlash(); });
+      byId('flashReveal').addEventListener('click', ()=> byId('flashA').classList.toggle('hidden'));
+    }
+
+    // ===== Init =====
+    function init(){
+      bind();
+      if(!window.quizData || typeof window.quizData.getAll!=='function'){
+        showAlert('Không đọc được dữ liệu gốc (window.quizData). Hãy giữ nguyên data.js và load trước app.', 'error');
+        byId('btnStart').disabled = true; byId('btnQuick').disabled = true;
+        return;
+      }
+      const all = window.quizData.getAll();
+      if(!Array.isArray(all)||!all.length){ showAlert('Danh sách môn rỗng trong data.js','error'); return; }
+      S.subjects = all.map(x=>x.subject);
+      S.raw.clear();
+      for(const it of all) S.raw.set(it.subject, it.text);
+
+      const sel = byId('selSubject'); sel.innerHTML='';
+      S.subjects.forEach(s=>{
+        const op=document.createElement('option'); op.value=s; op.textContent=s; sel.appendChild(op);
+      });
+
+      byId('btnStart').disabled = false; byId('btnQuick').disabled = false;
+      showView('setup');
+      showAlert('Dữ liệu đã nạp xong. Chọn môn để bắt đầu.','success');
+    }
+
+    if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', init); }
+    else { init(); }
   })();
   </script>
 </body>
