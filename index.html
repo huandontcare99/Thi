@@ -3,17 +3,29 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Quiz Pro – Ôn luyện & Thi thử</title>
+  <title>Quiz Pro+ — Ôn luyện & Thi thử</title>
 
   <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
-      theme: {
-        extend: {
-          borderRadius: { 'xl2': '1rem' },
-          boxShadow: { 'soft': '0 10px 25px -10px rgba(0,0,0,.15)' },
-          colors: { brand: { DEFAULT:'#2563eb' } }
+      theme:{
+        extend:{
+          colors:{ brand:'#2563eb', ok:'#22c55e', bad:'#ef4444', ink:'#0f172a'},
+          boxShadow:{ soft:'0 10px 25px -10px rgba(0,0,0,.15)'},
+          borderRadius:{ xl2:'1rem' },
+          animation:{
+            'slide-in':'slideIn .25s ease-out',
+            'fade-in':'fadeIn .25s ease-out',
+            'shake':'shake .35s ease-in-out',
+            'pop':'pop .22s ease-out',
+          },
+          keyframes:{
+            slideIn:{ '0%':{transform:'translateY(6px)',opacity:0}, '100%':{transform:'translateY(0)',opacity:1}},
+            fadeIn:{ '0%':{opacity:0}, '100%':{opacity:1}},
+            shake:{ '0%,100%':{transform:'translateX(0)'}, '25%':{transform:'translateX(-6px)'}, '75%':{transform:'translateX(6px)'} },
+            pop:{ '0%':{transform:'scale(.96)',opacity:.8}, '100%':{transform:'scale(1)',opacity:1} }
+          }
         }
       }
     }
@@ -33,29 +45,34 @@
     }
     .is-correct{ border-color: rgb(34 197 94)!important; background:#f0fdf4!important; }
     .is-wrong{ border-color: rgb(239 68 68)!important; background:#fef2f2!important; }
-    /* Fix iOS auto-zoom */
+    /* Donut chart */
+    .donut { --p: 0; width:120px; height:120px; border-radius:999px;
+      background: conic-gradient(#22c55e var(--p), #e2e8f0 0); }
+    /* iOS font-size để không auto-zoom */
     @media (max-width:380px){ select,input,button{ font-size:16px; } }
   </style>
 
   <!-- (Tùy chọn) Tự load data.js nếu có cùng thư mục -->
   <script src="data.js" defer></script>
+  <!-- Confetti nhẹ nhàng -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js" defer></script>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen">
-  <!-- Header siêu gọn, không che màn hình -->
+  <!-- Header gọn, không che nội dung -->
   <header class="sticky top-0 z-40 backdrop-blur bg-white/85 border-b border-slate-200">
     <div class="max-w-4xl mx-auto px-3 py-2">
       <div class="flex items-center gap-2">
-        <div class="w-9 h-9 rounded-xl2 bg-brand text-white flex items-center justify-center font-bold shadow-soft">Q</div>
+        <div class="w-9 h-9 rounded-xl2 bg-brand text-white flex items-center justify-center font-bold shadow-soft">Q+</div>
         <div class="min-w-0">
-          <h1 class="text-base font-semibold leading-tight">Quiz Pro</h1>
-          <p class="text-xs text-slate-500 leading-tight">Ôn luyện & Thi thử (Mobile-first)</p>
+          <h1 class="text-base font-semibold leading-tight">Quiz Pro+</h1>
+          <p class="text-xs text-slate-500 leading-tight">Làm bài • Chấm điểm • Ôn câu sai</p>
         </div>
         <button id="btnToolbar" class="ml-auto px-3 py-2 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50">
           Bảng điều khiển
         </button>
       </div>
 
-      <!-- Toolbar: xếp dọc trên mobile, 2-3 cột khi rộng hơn -->
+      <!-- Toolbar: xếp dọc trên mobile -->
       <div id="toolbar" class="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
         <div class="flex gap-2">
           <label class="text-sm text-slate-600 pt-2 min-w-[70px]">Môn</label>
@@ -67,7 +84,7 @@
           <label class="text-sm text-slate-600 pt-2 min-w-[70px]">Chế độ</label>
           <select id="modeSelect" class="flex-1 rounded-xl2 border border-slate-200 bg-white px-3 py-2">
             <option value="study">Học (hiện đáp án)</option>
-            <option value="practice">Luyện tập (chấm ngay)</option>
+            <option value="practice" selected>Luyện tập (chấm ngay)</option>
             <option value="exam">Thi thử (chấm cuối, có giờ)</option>
           </select>
         </div>
@@ -84,7 +101,7 @@
           <label class="text-sm text-slate-600 pt-2 min-w-[70px]">Sắp xếp</label>
           <select id="orderSelect" class="flex-1 rounded-xl2 border border-slate-200 bg-white px-3 py-2">
             <option value="sequence">Theo thứ tự</option>
-            <option value="shuffle">Ngẫu nhiên</option>
+            <option value="shuffle" selected>Ngẫu nhiên</option>
           </select>
         </div>
         <div class="flex gap-2">
@@ -105,7 +122,7 @@
             Bắt đầu
           </button>
           <button id="btnReset" class="px-4 py-3 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50">
-            Xóa kết quả
+            Xóa lịch sử
           </button>
           <button id="btnLoadFile" class="px-4 py-3 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50">
             📁 Nạp dữ liệu
@@ -116,60 +133,93 @@
     </div>
   </header>
 
-  <main class="max-w-4xl mx-auto px-3 pb-24">
-    <!-- Progress -->
-    <div class="mt-3">
-      <div class="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+  <main class="max-w-4xl mx-auto px-3 pb-28">
+    <!-- Top status: đúng/sai/đã làm + progress + timer -->
+    <section class="mt-3 rounded-2xl bg-white border border-slate-200 p-3 shadow-soft">
+      <div class="flex items-center gap-3">
+        <div class="text-xs px-2 py-1 rounded bg-slate-100 text-slate-600" id="badgeSubject">Môn</div>
+        <div class="text-xs px-2 py-1 rounded bg-slate-100 text-slate-600" id="badgeMode">Chế độ</div>
+        <div class="ml-auto text-xs text-slate-500" id="timerBox" hidden>⏱ <span id="timer">00:00</span></div>
+      </div>
+
+      <div class="mt-3 grid grid-cols-3 gap-2 text-center">
+        <div class="rounded-xl bg-green-50 py-2"><div class="text-xs text-green-700">Đúng</div><div id="statCorrect" class="text-lg font-bold text-green-700">0</div></div>
+        <div class="rounded-xl bg-rose-50 py-2"><div class="text-xs text-rose-700">Sai</div><div id="statWrong" class="text-lg font-bold text-rose-700">0</div></div>
+        <div class="rounded-xl bg-slate-50 py-2"><div class="text-xs text-slate-600">Đã làm</div><div id="statDone" class="text-lg font-bold text-slate-700">0</div></div>
+      </div>
+
+      <div class="mt-3 h-2 w-full bg-slate-200 rounded-full overflow-hidden">
         <div id="progressBar" class="h-2 bg-brand transition-[width] duration-300" style="width:0%"></div>
       </div>
       <div class="mt-1 text-xs text-slate-500" id="progressText">0 / 0</div>
+    </section>
+
+    <!-- Empty hint -->
+    <div id="emptyMsg" class="mt-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl2 p-3 text-sm">
+      Chưa có bài. Đặt <b>index.html</b> cạnh file <b>data.js</b> hoặc <b>data.txt</b>, rồi nhấn <b>Bắt đầu</b>.
+      Nếu vẫn chưa đọc được, bấm <b>📁 Nạp dữ liệu</b> để chọn file thủ công.
     </div>
 
-    <!-- Khu câu hỏi -->
-    <section id="quizArea" class="mt-3 space-y-3">
-      <div id="emptyMsg" class="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl2 p-3 text-sm">
-        Chưa có bài. Đặt <b>index.html</b> cạnh file <b>data.js</b> hoặc <b>data.txt</b>, rồi nhấn <b>Bắt đầu</b>.
-        Nếu vẫn chưa đọc được, bấm <b>📁 Nạp dữ liệu</b> để chọn file thủ công.
+    <!-- Play view -->
+    <article id="card" class="hidden mt-3 rounded-2xl bg-white border border-slate-200 shadow-soft p-4 animate-fade-in">
+      <h2 id="qTitle" class="text-base font-semibold"></h2>
+      <div id="optList" class="mt-3 space-y-2"></div>
+
+      <div id="explainBox" class="mt-4 hidden animate-slide-in">
+        <div class="text-sm font-semibold mb-1">Giải thích</div>
+        <div id="explain" class="text-sm text-slate-700"></div>
       </div>
 
-      <article id="card" class="hidden rounded-2xl bg-white border border-slate-200 shadow-soft p-4">
-        <div class="flex items-start gap-2">
-          <div class="text-xs px-2 py-1 rounded bg-slate-100 text-slate-600" id="badgeSubject">Môn</div>
-          <div class="text-xs px-2 py-1 rounded bg-slate-100 text-slate-600" id="badgeMode">Chế độ</div>
-          <div class="ml-auto text-xs text-slate-500" id="timerBox" hidden>⏱ <span id="timer">00:00</span></div>
-        </div>
+      <div class="mt-4 flex flex-wrap gap-2">
+        <button id="btnPrev" class="px-4 py-2 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50">← Trước</button>
+        <button id="btnNext" class="px-4 py-2 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50">Tiếp →</button>
+        <button id="btnCheck" class="px-4 py-2 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50">Chấm câu này</button>
+        <button id="btnReveal" class="px-4 py-2 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50">Hiện đáp án</button>
+        <button id="btnBookmark" class="ml-auto px-4 py-2 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50">🔖 Đánh dấu</button>
+        <button id="btnSubmit" class="px-4 py-2 rounded-xl2 bg-brand text-white hover:bg-blue-700">Nộp bài</button>
+      </div>
+    </article>
 
-        <h2 id="qTitle" class="mt-2 text-base font-semibold"></h2>
-        <div id="optList" class="mt-2 space-y-2"></div>
-
-        <div id="explainBox" class="mt-3 hidden">
-          <div class="text-sm font-semibold mb-1">Giải thích</div>
-          <div id="explain" class="text-sm text-slate-700"></div>
+    <!-- Result view -->
+    <article id="resultCard" class="hidden mt-3 rounded-2xl bg-white border border-slate-200 shadow-soft p-4 animate-pop">
+      <div class="flex items-center gap-4">
+        <div id="donut" class="donut" style="--p:0deg"></div>
+        <div>
+          <h3 class="text-lg font-bold mb-1">Kết quả</h3>
+          <p id="scoreText" class="text-sm text-slate-700"></p>
+          <div class="text-xs text-slate-500" id="timeText"></div>
         </div>
+      </div>
+      <div class="mt-3 flex flex-wrap gap-2">
+        <button id="btnReviewWrong" class="px-4 py-2 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50">Luyện lại câu sai</button>
+        <button id="btnRestart" class="px-4 py-2 rounded-xl2 bg-brand text-white hover:bg-blue-700">Làm lại</button>
+      </div>
+    </article>
 
-        <div class="mt-4 flex flex-wrap gap-2">
-          <button id="btnPrev" class="px-4 py-2 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50">← Trước</button>
-          <button id="btnNext" class="px-4 py-2 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50">Tiếp →</button>
-          <button id="btnCheck" class="px-4 py-2 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50">Chấm câu này</button>
-          <button id="btnReveal" class="px-4 py-2 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50">Hiện đáp án</button>
-          <button id="btnBookmark" class="ml-auto px-4 py-2 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50">🔖 Đánh dấu</button>
-          <button id="btnSubmit" class="px-4 py-2 rounded-xl2 bg-brand text-white hover:bg-blue-700">Nộp bài</button>
-        </div>
-      </article>
-
-      <article id="resultCard" class="hidden rounded-2xl bg-white border border-slate-200 shadow-soft p-4">
-        <h3 class="text-lg font-bold mb-1">Kết quả</h3>
-        <p id="scoreText" class="text-sm text-slate-700"></p>
-        <div class="mt-3 flex flex-wrap gap-2">
-          <button id="btnReviewWrong" class="px-4 py-2 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50">Luyện lại câu sai</button>
-          <button id="btnRestart" class="px-4 py-2 rounded-xl2 bg-brand text-white hover:bg-blue-700">Làm lại</button>
-        </div>
-      </article>
-    </section>
+    <!-- Review Wrong view -->
+    <article id="reviewCard" class="hidden mt-3 rounded-2xl bg-white border border-slate-200 shadow-soft p-4 animate-fade-in">
+      <div class="flex items-center gap-2">
+        <div class="text-sm font-semibold">Ôn lại câu sai</div>
+        <div class="ml-auto text-xs text-slate-500" id="reviewMeta"></div>
+      </div>
+      <h2 id="rTitle" class="mt-2 text-base font-semibold"></h2>
+      <div id="rOptList" class="mt-2 space-y-2"></div>
+      <div id="rExplainBox" class="mt-3 hidden">
+        <div class="text-sm font-semibold mb-1">Giải thích</div>
+        <div id="rExplain" class="text-sm text-slate-700"></div>
+      </div>
+      <div class="mt-4 flex flex-wrap gap-2">
+        <button id="rPrev" class="px-4 py-2 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50">← Trước</button>
+        <button id="rNext" class="px-4 py-2 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50">Tiếp →</button>
+        <button id="rReveal" class="px-4 py-2 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50">Hiện đáp án</button>
+        <button id="rMastered" class="ml-auto px-4 py-2 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50">Đã hiểu ✓</button>
+        <button id="rExit" class="px-4 py-2 rounded-xl2 bg-brand text-white hover:bg-blue-700">Thoát ôn sai</button>
+      </div>
+    </article>
 
     <!-- Danh sách câu (bottom sheet) -->
     <div id="sheet" class="fixed inset-x-0 bottom-0 z-30 hidden">
-      <div class="mx-auto max-w-4xl rounded-t-2xl bg-white shadow-2xl border border-slate-200">
+      <div class="mx-auto max-w-4xl rounded-t-2xl bg-white shadow-2xl border border-slate-200 animate-slide-in">
         <div class="p-3 flex items-center gap-2 border-b border-slate-200">
           <div class="font-semibold">Danh sách câu</div>
           <button id="sheetClose" class="ml-auto px-3 py-1 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50">Đóng</button>
@@ -179,19 +229,36 @@
     </div>
   </main>
 
-  <!-- FAB mở danh sách câu – không che nội dung -->
+  <!-- FAB -->
   <button id="fab" class="fixed bottom-4 right-4 z-20 rounded-full bg-brand text-white w-12 h-12 shadow-soft hover:bg-blue-700" title="Danh sách câu">#</button>
+
+  <!-- Bottom action bar (mobile) -->
+  <footer class="fixed inset-x-0 bottom-0 z-30">
+    <div class="max-w-4xl mx-auto px-3 pb-[env(safe-area-inset-bottom)]">
+      <div class="rounded-2xl bg-white border border-slate-200 shadow-soft p-2 flex gap-2">
+        <button id="bPrev" class="flex-1 px-3 py-2 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50">←</button>
+        <button id="bReveal" class="px-3 py-2 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50">Đáp án</button>
+        <button id="bCheck" class="px-3 py-2 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50">Chấm</button>
+        <button id="bSubmit" class="px-3 py-2 rounded-xl2 bg-brand text-white hover:bg-blue-700">Nộp</button>
+        <button id="bNext" class="flex-1 px-3 py-2 rounded-xl2 border border-slate-200 bg-white hover:bg-slate-50">→</button>
+      </div>
+    </div>
+  </footer>
 
   <!-- App -->
   <script>
   (function(){
     "use strict";
 
-    // ===== Helpers =====
-    const $ = s => document.querySelector(s);
+    // ===== Shortcuts =====
+    const $  = s => document.querySelector(s);
     const $$ = s => document.querySelectorAll(s);
     const byId = id => document.getElementById(id);
 
+    // Safe get
+    const safe = (id)=>{ const el=byId(id); if(!el) console.warn('Missing',id); return el; };
+
+    // ===== Normalize helpers =====
     const normalize = (s) => (s ?? "")
       .toString()
       .replace(/\s+/g,' ')
@@ -200,16 +267,19 @@
       .replace(/[“”"']/g,'')
       .toLowerCase();
 
+    const debounce = (fn,ms=200)=>{ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; };
+
     const choiceLetters = ['A','B','C','D','E','F'];
     const LS_BOOK = 'quizpro_bookmarks';
     const LS_WRONG = 'quizpro_wrong';
+    const LS_STATS = 'quizpro_stats';
+
     const loadLS = (k, def) => { try{return JSON.parse(localStorage.getItem(k)) ?? def;}catch{return def;} };
     const saveLS = (k,v) => localStorage.setItem(k, JSON.stringify(v));
 
     // ===== Robust legacy RAW parser =====
     function parseLegacyText(raw){
       if(!raw) return [];
-      // Cắt theo "Câu n:" hoặc vạch kẻ
       const blocks=[]; const re=/(^|\n)Câu\s*\d+\s*:[\s\S]*?(?=(?:\n[-=]{3,}\s*\n)|(?:\n\s*Câu\s*\d+\s*:)|\s*$)/gi;
       let m; while((m=re.exec(raw))){ blocks.push(m[0]); }
 
@@ -225,7 +295,7 @@
 
         const opts=[];
         for(const ln of lines){
-          const m2=/^([A-ZĐ])\.\s*(.*)$/.exec(ln); // kể cả chữ Đ
+          const m2=/^([A-ZĐ])\.\s*(.*)$/.exec(ln);
           if(!m2) continue;
           const letter=m2[1].toUpperCase();
           let text=m2[2].trim();
@@ -235,7 +305,6 @@
         }
         if(!opts.length) continue;
 
-        // Tìm đáp án
         let answerIndex=opts.findIndex(o=>o.hasCheck);
         if(answerIndex<0){
           const normCorrect=normalize(correctText);
@@ -251,34 +320,29 @@
       return qs;
     }
 
-    // Lấy tên môn từ header nội dung RAW
     function inferSubjectName(raw, fallback){
       const m=/MÔN\s*[:：]\s*([^\n]+)\n/i.exec(raw||'');
       return (m?m[1].trim():fallback||'Môn');
     }
 
-    // Parse data.js TEXT (không eval): bắt các RAW_* và SUBJECT_*
     function parseDataJsText(jsText){
       const subjects=[];
       if(!jsText) return subjects;
 
-      // Map SUBJECT_* constants
       const subjMap={};
       const subjRe=/const\s+SUBJECT_([A-Za-z0-9_]+)\s*=\s*"([^"]*)"/g;
       let sm; while((sm=subjRe.exec(jsText))){
         subjMap[sm[1]] = sm[2];
       }
 
-      // RAW blocks
       const rawRe=/const\s+(RAW_([A-Za-z0-9_]+))\s*=\s*String\.raw`([\s\S]*?)`;/g;
       let rm; while((rm=rawRe.exec(jsText))){
-        const key = rm[2];               // ví dụ PH, QU
-        const raw = rm[3];               // nội dung RAW
+        const key = rm[2];
+        const raw = rm[3];
         const name = subjMap[key] || inferSubjectName(raw, key);
         subjects.push({ name, questions: parseLegacyText(raw) });
       }
 
-      // Nếu không có RAW_* mà có window.quizData.getAll() → cố gắng đọc text giữa backtick (2 môn)
       if(subjects.length===0){
         const allRaw=[...jsText.matchAll(/String\.raw`([\s\S]*?)`/g)].map(x=>x[1]);
         for(const raw of allRaw){
@@ -290,7 +354,6 @@
       return subjects;
     }
 
-    // Parse JSON text
     function parseJsonText(txt){
       try{
         const data=JSON.parse(txt);
@@ -304,22 +367,18 @@
       return [];
     }
 
-    // Load subjects từ các nguồn: window, rồi fetch data.txt nếu có
     async function loadSubjectsAuto(){
-      // 1) window.quizDataJSON
       if(window.quizDataJSON?.subjects?.length){
         return window.quizDataJSON.subjects.map(s=>({
           name:s.name, questions:s.questions.map(q=>({text:q.text,options:q.options,answer:q.answer,explain:q.explain||''}))
         }));
       }
-      // 2) window.quizData.getAll() (data.js truyền thống)
       if(window.quizData?.getAll){
         try{
           const arr=window.quizData.getAll();
           return arr.map(it=>({ name: it.subject, questions: parseLegacyText(String(it.text||'')) }));
         }catch(e){ console.warn('Lỗi quizData.getAll()', e); }
       }
-      // 3) Biến RAW_* global
       const rawKeys = Object.keys(window).filter(k=>/^RAW_/.test(k));
       if(rawKeys.length){
         const subjects=[];
@@ -331,86 +390,101 @@
         }
         if(subjects.length) return subjects;
       }
-      // 4) fetch data.txt (nếu đặt cạnh index)
       try{
         const res = await fetch('data.txt', {cache:'no-store'});
         if(res.ok){
           const txt = await res.text();
-          // Thử RAW trước, nếu không thì JSON
           const rawQs = parseLegacyText(txt);
-          if(rawQs.length){
-            return [{ name: inferSubjectName(txt,'Môn'), questions: rawQs }];
-          }
+          if(rawQs.length) return [{ name: inferSubjectName(txt,'Môn'), questions: rawQs }];
           const jsonSubs = parseJsonText(txt);
           if(jsonSubs.length) return jsonSubs;
         }
       }catch{}
-      return []; // để dùng nút "Nạp dữ liệu"
+      return [];
     }
 
     // ====== State ======
     const state={
       subjects:[],
       subjectIdx:0,
-      mode:'study',
-      order:'sequence',
+      mode:'practice',
+      order:'shuffle',
       filter:'all',
       search:'',
       pool:[],
       cur:0,
       answers:{},
       checked:{},
+      correct:0,
+      wrong:0,
       bookmarks: loadLS(LS_BOOK,{}),
       wrongBank: loadLS(LS_WRONG,[]),
+      stats: loadLS(LS_STATS,{ total:0, correct:0 }),
       timer:null,
-      seconds:0
+      seconds:0,
+      review:{ list:[], idx:0 }
     };
 
     // ====== Refs ======
-    const subjectSelect = byId('subjectSelect');
-    const modeSelect = byId('modeSelect');
-    const countSelect = byId('countSelect');
-    const orderSelect = byId('orderSelect');
-    const filterSelect = byId('filterSelect');
-    const searchInput = byId('searchInput');
-    const btnStart = byId('btnStart');
-    const btnReset = byId('btnReset');
-    const btnToolbar = byId('btnToolbar');
-    const btnLoadFile = byId('btnLoadFile');
-    const fileInput = byId('fileInput');
-    const toolbar = byId('toolbar');
+    const subjectSelect = safe('subjectSelect');
+    const modeSelect = safe('modeSelect');
+    const countSelect = safe('countSelect');
+    const orderSelect = safe('orderSelect');
+    const filterSelect = safe('filterSelect');
+    const searchInput = safe('searchInput');
+    const btnStart = safe('btnStart');
+    const btnReset = safe('btnReset');
+    const btnToolbar = safe('btnToolbar');
+    const btnLoadFile = safe('btnLoadFile');
+    const fileInput = safe('fileInput');
+    const toolbar = safe('toolbar');
 
-    const emptyMsg = byId('emptyMsg');
-    const card = byId('card');
-    const badgeSubject = byId('badgeSubject');
-    const badgeMode = byId('badgeMode');
-    const timerBox = byId('timerBox'); const timerLbl = byId('timer');
+    const emptyMsg = safe('emptyMsg');
+    const card = safe('card');
+    const badgeSubject = safe('badgeSubject');
+    const badgeMode = safe('badgeMode');
+    const timerBox = safe('timerBox'); const timerLbl = safe('timer');
 
-    const qTitle = byId('qTitle');
-    const optList = byId('optList');
-    const explainBox = byId('explainBox'); const explain = byId('explain');
+    const statCorrect = safe('statCorrect');
+    const statWrong = safe('statWrong');
+    const statDone = safe('statDone');
 
-    const btnPrev = byId('btnPrev');
-    const btnNext = byId('btnNext');
-    const btnCheck = byId('btnCheck');
-    const btnReveal = byId('btnReveal');
-    const btnBookmark = byId('btnBookmark');
-    const btnSubmit = byId('btnSubmit');
+    const qTitle = safe('qTitle');
+    const optList = safe('optList');
+    const explainBox = safe('explainBox'); const explain = safe('explain');
 
-    const progressBar = byId('progressBar');
-    const progressText = byId('progressText');
+    const btnPrev = safe('btnPrev');
+    const btnNext = safe('btnNext');
+    const btnCheck = safe('btnCheck');
+    const btnReveal = safe('btnReveal');
+    const btnBookmark = safe('btnBookmark');
+    const btnSubmit = safe('btnSubmit');
 
-    const resultCard = byId('resultCard');
-    const scoreText = byId('scoreText');
-    const btnReviewWrong = byId('btnReviewWrong');
-    const btnRestart = byId('btnRestart');
+    const progressBar = safe('progressBar');
+    const progressText = safe('progressText');
 
-    const sheet = byId('sheet'); const sheetClose = byId('sheetClose'); const qGrid = byId('qGrid');
-    const fab = byId('fab');
+    const resultCard = safe('resultCard');
+    const scoreText = safe('scoreText');
+    const timeText = safe('timeText');
+    const donut = safe('donut');
+    const btnReviewWrong = safe('btnReviewWrong');
+    const btnRestart = safe('btnRestart');
+
+    const reviewCard = safe('reviewCard');
+    const rTitle = safe('rTitle');
+    const rOptList = safe('rOptList');
+    const rExplainBox = safe('rExplainBox'); const rExplain = safe('rExplain');
+    const rPrev = safe('rPrev'); const rNext=safe('rNext'); const rReveal=safe('rReveal'); const rMastered=safe('rMastered'); const rExit=safe('rExit');
+    const reviewMeta = safe('reviewMeta');
+
+    const sheet = safe('sheet'); const sheetClose = safe('sheetClose'); const qGrid = safe('qGrid');
+    const fab = safe('fab');
+
+    const bPrev=safe('bPrev'), bNext=safe('bNext'), bCheck=safe('bCheck'), bReveal=safe('bReveal'), bSubmit=safe('bSubmit');
 
     // ====== Init ======
     document.addEventListener('DOMContentLoaded', async ()=>{
-      // Sự kiện UI
+      // Sự kiện UI (toolbar)
       btnStart.onclick = start;
       btnReset.onclick = resetAll;
       btnToolbar.onclick = ()=> toolbar.classList.toggle('hidden');
@@ -421,14 +495,22 @@
       modeSelect.onchange = ()=> state.mode = modeSelect.value;
       orderSelect.onchange = ()=> state.order = orderSelect.value;
       filterSelect.onchange = ()=> state.filter = filterSelect.value;
-      searchInput.oninput = ()=> state.search = searchInput.value;
+      searchInput.oninput = debounce(()=> state.search = searchInput.value, 200);
 
+      // Sự kiện làm bài
       btnPrev.onclick = prevQ; btnNext.onclick = nextQ;
       btnCheck.onclick = checkThis; btnReveal.onclick = revealThis;
       btnBookmark.onclick = toggleBookmark; btnSubmit.onclick = submitAll;
 
+      // Bottom bar (mobile quick)
+      bPrev.onclick=prevQ; bNext.onclick=nextQ; bCheck.onclick=checkThis; bReveal.onclick=revealThis; bSubmit.onclick=submitAll;
+
+      // Danh sách câu
       fab.onclick = ()=> sheet.classList.toggle('hidden');
       sheetClose.onclick = ()=> sheet.classList.add('hidden');
+
+      // Vuốt chuyển câu
+      attachSwipe();
 
       // Nạp subjects tự động
       state.subjects = await loadSubjectsAuto();
@@ -457,7 +539,6 @@
       if(!file) return;
       const txt = await file.text();
 
-      // Thử JSON → data.js → RAW thẳng
       let subs = parseJsonText(txt);
       if(!subs.length) subs = parseDataJsText(txt);
       if(!subs.length){
@@ -498,32 +579,35 @@
     // ====== Start ======
     function start(){
       clearTimer();
-      state.answers={}; state.checked={};
-      resultCard.classList.add('hidden');
+      state.answers={}; state.checked={}; state.correct=0; state.wrong=0;
+      resultCard.classList.add('hidden'); reviewCard.classList.add('hidden'); card.classList.add('hidden');
 
       state.pool = makePool();
       state.cur = 0;
 
       if(!state.pool.length){
-        emptyMsg.classList.remove('hidden'); card.classList.add('hidden');
-        updateProgress(); return;
+        emptyMsg.classList.remove('hidden');
+        updateProgress(); updateStatsUI(); return;
       }
+      emptyMsg.classList.add('hidden');
 
       if(state.mode==='exam'){ startTimer(); }
       badgeSubject.textContent = state.subjects[state.subjectIdx]?.name || 'Môn';
       badgeMode.textContent = (state.mode==='study'?'Học':state.mode==='practice'?'Luyện tập':'Thi thử');
 
-      sheet.classList.add('hidden');
-      renderQuestion();
-      updateProgress();
-      buildGrid();
+      renderQuestion(true);
+      updateProgress(); buildGrid(); updateStatsUI();
+
+      // Scroll lên thẻ card
+      card.scrollIntoView({behavior:'smooth',block:'start'});
     }
 
     // ====== Render ======
-    function renderQuestion(){
+    function renderQuestion(first=false){
       const q = state.pool[state.cur];
-      if(!q){ emptyMsg.classList.remove('hidden'); card.classList.add('hidden'); return; }
-      emptyMsg.classList.add('hidden'); card.classList.remove('hidden');
+      if(!q){ card.classList.add('hidden'); return; }
+      card.classList.remove('hidden');
+      if(!first){ card.classList.remove('animate-fade-in'); void card.offsetWidth; card.classList.add('animate-fade-in'); }
 
       qTitle.textContent = `Câu ${state.cur+1}: ${q.text}`;
       optList.innerHTML=''; explainBox.classList.add('hidden'); explain.textContent=q.explain||'';
@@ -535,13 +619,15 @@
         input.checked = (state.answers[state.cur]===i);
         input.onchange = ()=>{
           state.answers[state.cur]=i;
-          if(state.mode==='practice') markOptions();
+          // Practice: chấm ngay
+          if(state.mode==='practice'){ markOptions(true); }
         };
         const lab=document.createElement('label'); lab.setAttribute('for',id);
-        lab.innerHTML=`<div class="flex gap-2"><div class="text-slate-500">${choiceLetters[i]||''}.</div><div class="flex-1">${o}</div></div>`;
+        lab.innerHTML=`<div class="flex gap-2"><div class="text-slate-500">${choiceLetters[i]||''}.</div><div class="flex-1 whitespace-normal break-words">${o}</div></div>`;
         wrap.appendChild(input); wrap.appendChild(lab); optList.appendChild(wrap);
       });
 
+      // Toggle nút theo mode
       btnCheck.classList.toggle('hidden', state.mode!=='practice');
       btnReveal.classList.toggle('hidden', state.mode!=='study');
       btnSubmit.classList.toggle('hidden', state.mode!=='exam');
@@ -549,21 +635,33 @@
       const key=`${state.subjectIdx}:${q._id}`;
       btnBookmark.textContent = state.bookmarks[key] ? '🔖 Đã đánh dấu' : '🔖 Đánh dấu';
       timerBox.hidden = (state.mode!=='exam');
+
       clearMarks();
     }
 
-    function clearMarks(){ $$('#optList label').forEach(el=>el.classList.remove('is-correct','is-wrong')); }
-    function markOptions(){
+    function clearMarks(){ $$('#optList label').forEach(el=>el.classList.remove('is-correct','is-wrong','animate-shake','animate-pop')); }
+    function markOptions(fromChange=false){
       const q=state.pool[state.cur]; const pick=state.answers[state.cur];
       clearMarks();
       const labels=$$('#optList label');
-      if(labels[q.answer]) labels[q.answer].classList.add('is-correct');
-      if(pick!=null && pick!==q.answer && labels[pick]) labels[pick].classList.add('is-wrong');
+      if(labels[q.answer]) { labels[q.answer].classList.add('is-correct','animate-pop'); }
+      if(pick!=null && pick!==q.answer && labels[pick]) { labels[pick].classList.add('is-wrong','animate-shake'); }
       state.checked[state.cur]=true;
+
+      // cập nhật thống kê
+      const prevRight = state.answers.__lastRight;
+      const isRight = pick===q.answer;
+      // chỉ tăng nếu chấm lần đầu của câu này
+      if(fromChange && state.answers.__markedIndex!==state.cur){
+        state.answers.__markedIndex = state.cur;
+        if(isRight){ state.correct++; fireConfetti(); } else { state.wrong++; vibrate(20); }
+        updateStatsUI();
+      }
+      if(state.mode==='practice' && q.explain) explainBox.classList.remove('hidden');
     }
     function revealThis(){
       const q=state.pool[state.cur]; const labels=$$('#optList label');
-      clearMarks(); if(labels[q.answer]) labels[q.answer].classList.add('is-correct');
+      clearMarks(); if(labels[q.answer]) labels[q.answer].classList.add('is-correct','animate-pop');
       if(q.explain) explainBox.classList.remove('hidden');
     }
 
@@ -581,29 +679,101 @@
       progressText.textContent = `${cur>total?total:cur} / ${total}`;
       progressBar.style.width = total? `${(Math.min(cur,total)/total)*100}%` : '0%';
     }
+    function updateStatsUI(){
+      const done = Object.keys(state.checked).filter(k=>state.checked[k]).length;
+      statCorrect.textContent = state.correct;
+      statWrong.textContent = state.wrong;
+      statDone.textContent = done;
+    }
 
     // ====== Submit (Exam) ======
     function submitAll(){
-      if(state.mode!=='exam') return;
+      if(state.mode!=='exam'){ return; }
       const total=state.pool.length; let correct=0, wrongList=[];
       for(let i=0;i<total;i++){
         const q=state.pool[i];
         if(state.answers[i]===q.answer) correct++; else wrongList.push({s:state.subjectIdx,q:q._id});
       }
-      state.wrongBank=(wrongList.concat(state.wrongBank)).slice(0,200);
+      const wrong=total-correct;
+
+      // Lưu wrong bank
+      state.wrongBank=(wrongList.concat(state.wrongBank)).slice(0,400);
       saveLS(LS_WRONG,state.wrongBank);
 
-      clearTimer();
-      scoreText.textContent=`Đúng ${correct}/${total} câu (${Math.round(correct*100/Math.max(1,total))}%).`;
-      resultCard.classList.remove('hidden');
+      // Thống kê tổng
+      state.stats.total += total; state.stats.correct += correct; saveLS(LS_STATS,state.stats);
 
-      btnReviewWrong.onclick=()=>{
-        state.mode='practice'; modeSelect.value='practice';
-        state.filter='wrong'; filterSelect.value='wrong';
-        start();
-      };
+      clearTimer();
+
+      // UI kết quả
+      const pct = Math.round(correct*100/Math.max(1,total));
+      scoreText.textContent=`Đúng ${correct}/${total} câu (${pct}%).`;
+      if(state.seconds>0){
+        const m=Math.floor(state.seconds/60), s=state.seconds%60;
+        timeText.textContent = `Thời gian: ${m}m ${s}s`;
+      } else timeText.textContent='';
+
+      donut.style.setProperty('--p', `${pct*3.6}deg`);
+      resultCard.classList.remove('hidden'); card.classList.add('hidden');
+      window.scrollTo({top:0,behavior:'smooth'});
+
+      btnReviewWrong.onclick=enterReviewWrong;
       btnRestart.onclick=start;
     }
+
+    function enterReviewWrong(){
+      // Lấy danh sách sai của lần vừa rồi (ưu tiên theo môn hiện tại)
+      const set=new Set(state.wrongBank.map(x=>`${x.s}:${x.q}`));
+      const subj = state.subjects[state.subjectIdx];
+      const list = subj.questions
+        .map((q,idx)=>({q, _id:idx}))
+        .filter(item=>set.has(`${state.subjectIdx}:${item._id}`));
+      if(!list.length){ alert('Không có câu sai để ôn.'); return; }
+      state.review.list = list; state.review.idx = 0;
+      resultCard.classList.add('hidden'); card.classList.add('hidden'); reviewCard.classList.remove('hidden');
+      renderReview();
+    }
+
+    function renderReview(){
+      const item = state.review.list[state.review.idx];
+      if(!item){ reviewCard.classList.add('hidden'); return; }
+      reviewMeta.textContent = `Câu ${state.review.idx+1}/${state.review.list.length}`;
+      rTitle.textContent = item.q.text;
+      rOptList.innerHTML=''; rExplainBox.classList.add('hidden'); rExplain.textContent=item.q.explain||'';
+
+      item.q.options.forEach((o,i)=>{
+        const id=`r-${state.review.idx}-${i}`;
+        const wrap=document.createElement('div'); wrap.className='opt';
+        const input=document.createElement('input'); input.type='radio'; input.name=`rq-${state.review.idx}`; input.id=id; input.value=i;
+        input.onchange=()=>{ // chấm ngay
+          clearReviewMarks();
+          const labs=$$('#rOptList label');
+          if(labs[item.q.answer]) labs[item.q.answer].classList.add('is-correct','animate-pop');
+          if(i!==item.q.answer && labs[i]) labs[i].classList.add('is-wrong','animate-shake');
+          if(i===item.q.answer) fireConfetti(); else vibrate(20);
+          if(item.q.explain) rExplainBox.classList.remove('hidden');
+        };
+        const lab=document.createElement('label'); lab.setAttribute('for',id);
+        lab.innerHTML=`<div class="flex gap-2"><div class="text-slate-500">${choiceLetters[i]||''}.</div><div class="flex-1 whitespace-normal break-words">${o}</div></div>`;
+        wrap.appendChild(input); wrap.appendChild(lab); rOptList.appendChild(wrap);
+      });
+
+      rPrev.onclick=()=>{ if(state.review.idx>0){ state.review.idx--; renderReview(); } };
+      rNext.onclick=()=>{ if(state.review.idx<state.review.list.length-1){ state.review.idx++; renderReview(); } };
+      rReveal.onclick=()=>{ clearReviewMarks(); const labs=$$('#rOptList label'); if(labs[item.q.answer]) labs[item.q.answer].classList.add('is-correct','animate-pop'); if(item.q.explain) rExplainBox.classList.remove('hidden'); };
+      rMastered.onclick=()=>{
+        // bỏ khỏi wrongBank
+        const key=`${state.subjectIdx}:${item._id}`;
+        state.wrongBank=state.wrongBank.filter(x=>`${x.s}:${x.q}`!==key);
+        saveLS(LS_WRONG,state.wrongBank);
+        // bỏ khỏi list hiện tại
+        state.review.list.splice(state.review.idx,1);
+        if(state.review.idx>=state.review.list.length) state.review.idx=Math.max(0,state.review.list.length-1);
+        if(state.review.list.length) renderReview(); else { alert('Đã hoàn thành ôn sai.'); reviewCard.classList.add('hidden'); }
+      };
+      rExit.onclick=()=>{ reviewCard.classList.add('hidden'); };
+    }
+    function clearReviewMarks(){ $$('#rOptList label').forEach(el=>el.classList.remove('is-correct','is-wrong','animate-shake','animate-pop')); }
 
     // ====== Grid & FAB ======
     function buildGrid(){
@@ -629,12 +799,34 @@
     }
     function clearTimer(){ if(state.timer){ clearInterval(state.timer); state.timer=null; } }
 
+    // ====== Misc ======
     function resetAll(){
       localStorage.removeItem(LS_BOOK);
       localStorage.removeItem(LS_WRONG);
-      state.bookmarks={}; state.wrongBank=[];
-      alert('Đã xóa đánh dấu & lịch sử sai gần đây.');
+      localStorage.removeItem(LS_STATS);
+      state.bookmarks={}; state.wrongBank=[]; state.stats={total:0,correct:0};
+      alert('Đã xóa đánh dấu, sai gần đây & thống kê tổng.');
     }
+
+    function attachSwipe(){
+      let startX=0, startY=0, dx=0, dy=0;
+      const area=$('main');
+      area.addEventListener('touchstart', e=>{ const t=e.touches[0]; startX=t.clientX; startY=t.clientY; }, {passive:true});
+      area.addEventListener('touchmove', e=>{ const t=e.touches[0]; dx=t.clientX-startX; dy=t.clientY-startY; }, {passive:true});
+      area.addEventListener('touchend', ()=>{
+        if(Math.abs(dx)>60 && Math.abs(dy)<40){
+          if(dx<0) nextQ(); else prevQ();
+        }
+        dx=dy=0;
+      }, {passive:true});
+    }
+
+    function fireConfetti(){
+      if(typeof confetti!=='function') return;
+      confetti({ particleCount: 40, spread: 55, origin: { y: .8 } });
+    }
+    function vibrate(ms){ if(navigator.vibrate) try{ navigator.vibrate(ms); }catch{} }
+
   })();
   </script>
 </body>
