@@ -3,538 +3,960 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Ôn luyện trắc nghiệm – mobile first</title>
-
+  <title>Ôn luyện đỉnh cao – Quiz Pro</title>
+  <meta name="theme-color" content="#0f172a" />
   <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
+    // Tailwind config – mobile-first + dark
     tailwind.config = {
+      darkMode: ['class', '[data-theme="dark"]'],
       theme: {
         extend: {
+          fontFamily: { sans: ['ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Inter', 'Arial'] },
           colors: {
-            brand: {
-              50:'#eef2ff',100:'#e0e7ff',200:'#c7d2fe',300:'#a5b4fc',400:'#818cf8',
-              500:'#6366f1',600:'#4f46e5',700:'#4338ca',800:'#3730a3',900:'#312e81'
-            }
+            brand: { 50:'#eef2ff', 100:'#e0e7ff', 500:'#6366f1', 600:'#4f46e5', 700:'#4338ca', 900:'#1e1b4b' }
+          },
+          boxShadow: {
+            smooth: '0 6px 24px rgba(0,0,0,.08), 0 2px 8px rgba(0,0,0,.06)'
           }
         }
       }
     }
   </script>
-
-  <!-- Small fixes for mobile/tablet -->
   <style>
-    *{-webkit-tap-highlight-color:rgba(0,0,0,0)}
-    html,body{height:100%}
-    button:active{transform:translateY(.5px)}
-    ::-webkit-scrollbar{width:8px;height:8px}
-    ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:8px}
-    .fade-in{animation:fade .25s ease}
-    @keyframes fade{from{opacity:.0;transform:translateY(2px)}to{opacity:1;transform:none}}
+    /* Utility additions for robust layout */
+    .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+    .safe-top { padding-top: env(safe-area-inset-top); }
+    .vh-safe { height: 100svh; }
+    .scroll-snap { scroll-snap-type: y mandatory; }
+    .snap-item { scroll-snap-align: start; }
+    .hyphens-any { hyphens: auto; word-break: break-word; overflow-wrap: anywhere; }
+    .btn { @apply inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold shadow-smooth transition active:scale-[.99]; }
+    .btn-primary { @apply bg-brand-600 text-white hover:bg-brand-700; }
+    .btn-soft { @apply bg-white text-gray-900 ring-1 ring-gray-200 hover:bg-gray-50; }
+    .chip { @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ring-1 ring-gray-200 bg-white; }
+    .card { @apply rounded-2xl bg-white p-4 shadow-smooth; }
+    .kbd { @apply inline-flex items-center rounded-md border border-gray-300 bg-gray-50 px-1.5 py-0.5 text-[11px] font-medium text-gray-700; }
   </style>
-</head>
-<body class="bg-slate-50 text-slate-900 selection:bg-brand-200 selection:text-slate-900">
 
-  <!-- HEADER (nhẹ, không che màn) -->
-  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-slate-200">
-    <div class="max-w-4xl mx-auto px-3 py-2">
-      <div class="flex items-center justify-between gap-3">
-        <h1 class="text-base sm:text-lg font-semibold tracking-tight">Ôn luyện trắc nghiệm</h1>
-        <nav class="flex items-center gap-2">
-          <button id="navHome" class="text-xs sm:text-sm px-3 py-1 rounded-lg border border-slate-300 hover:bg-slate-100">Trang chủ</button>
-          <button id="navFlash" class="text-xs sm:text-sm px-3 py-1 rounded-lg border border-slate-300 hover:bg-slate-100">Flashcards</button>
-        </nav>
+  <!-- MUST load data.js BEFORE our app -->
+  <script src="data.js"></script>
+</head>
+
+<body class="min-h-screen bg-gray-50 text-gray-900">
+  <!-- Header (mobile-first, mỏng, không che nội dung) -->
+  <header class="safe-top sticky top-0 z-40 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b">
+    <div class="mx-auto max-w-5xl px-3 sm:px-4">
+      <div class="flex items-center gap-3 py-2">
+        <div class="flex items-center gap-2">
+          <div class="h-9 w-9 rounded-xl bg-brand-600 text-white grid place-items-center text-[18px] font-bold">Q</div>
+          <div class="leading-tight">
+            <div class="font-bold">Quiz Pro</div>
+            <div class="text-xs text-gray-500">Ôn thi • Luyện tập • Flashcards</div>
+          </div>
+        </div>
+        <div class="ml-auto flex items-center gap-2">
+          <button id="btnTheme" class="btn btn-soft" title="Chế độ sáng/tối">
+            <span class="i-theme">🌙</span>
+          </button>
+          <button id="btnShare" class="btn btn-soft" title="Chia sẻ cấu hình">🔗</button>
+        </div>
       </div>
     </div>
   </header>
 
-  <!-- MAIN -->
-  <main class="max-w-4xl mx-auto p-3 pb-24 space-y-4">
+  <!-- Main views container -->
+  <main id="viewRoot" class="mx-auto max-w-5xl px-3 sm:px-4 pt-3 pb-24 safe-bottom"></main>
 
-    <!-- Alert -->
-    <div id="alert" class="hidden mb-2 p-3 rounded-lg border text-sm"></div>
+  <!-- Bottom Nav (mobile) -->
+  <nav class="safe-bottom fixed inset-x-0 bottom-0 z-50 border-t bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70">
+    <div class="mx-auto max-w-5xl grid grid-cols-5">
+      <button data-view="home" class="nav-btn py-2.5 text-xs flex flex-col items-center gap-1">
+        <span>🏠</span><span>Trang chủ</span>
+      </button>
+      <button data-view="practice" class="nav-btn py-2.5 text-xs flex flex-col items-center gap-1">
+        <span>📝</span><span>Luyện</span>
+      </button>
+      <button data-view="exam" class="nav-btn py-2.5 text-xs flex flex-col items-center gap-1">
+        <span>⏱️</span><span>Thi</span>
+      </button>
+      <button data-view="flash" class="nav-btn py-2.5 text-xs flex flex-col items-center gap-1">
+        <span>🃏</span><span>Thẻ</span>
+      </button>
+      <button data-view="reports" class="nav-btn py-2.5 text-xs flex flex-col items-center gap-1">
+        <span>📊</span><span>Báo cáo</span>
+      </button>
+    </div>
+  </nav>
 
-    <!-- VIEW: SETUP -->
-    <section id="view-setup" class="fade-in space-y-4">
-      <div class="rounded-2xl bg-white shadow-sm border border-slate-200 p-4">
-        <h2 class="text-base font-semibold mb-3">Thiết lập</h2>
-
-        <!-- Form chọn nhanh – mobile first, không đè nhau -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <label class="block">
-            <span class="block text-sm mb-1">Môn</span>
-            <select id="selSubject" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-brand-400">
-              <option value="">Đang nạp dữ liệu…</option>
-            </select>
-          </label>
-
-          <label class="block">
-            <span class="block text-sm mb-1">Chế độ</span>
-            <select id="selMode" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-brand-400">
-              <option value="practice">Luyện tập</option>
-              <option value="exam">Thi (đếm giờ)</option>
-            </select>
-          </label>
-
-          <label class="block">
-            <span class="block text-sm mb-1">Số câu</span>
-            <select id="selCount" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-brand-400">
-              <option value="10">10</option>
-              <option value="20">20</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
-              <option value="all">Tất cả</option>
-            </select>
-          </label>
-
-          <div class="grid grid-cols-2 gap-2">
-            <label class="flex items-center gap-2">
-              <input id="chkShuffleQ" type="checkbox" class="w-5 h-5 rounded border-slate-300 text-brand-600 focus:ring-brand-400" checked>
-              <span class="text-sm">Xáo câu</span>
-            </label>
-            <label class="flex items-center gap-2">
-              <input id="chkShuffleA" type="checkbox" class="w-5 h-5 rounded border-slate-300 text-brand-600 focus:ring-brand-400" checked>
-              <span class="text-sm">Xáo đáp án</span>
-            </label>
-          </div>
-        </div>
-
-        <div class="mt-4 flex items-center gap-2">
-          <button id="btnStart" class="flex-1 px-4 py-3 rounded-xl bg-brand-600 text-white font-medium active:scale-[.985] hover:bg-brand-700">Bắt đầu</button>
-          <button id="btnQuick" class="px-4 py-3 rounded-xl border border-slate-300 font-medium hover:bg-slate-100 active:scale-[.985]">Test nhanh 10 câu</button>
-        </div>
-      </div>
-
-      <div class="rounded-2xl bg-white shadow-sm border border-slate-200 p-4 text-sm text-slate-600">
-        Mẹo: “Luyện tập” xem đáp án đúng ngay khi nộp; “Thi” sẽ có đếm giờ & chấm sau cùng.
-      </div>
-    </section>
-
-    <!-- VIEW: QUIZ -->
-    <section id="view-quiz" class="hidden fade-in space-y-3">
-      <!-- Thanh tiến trình + thời gian -->
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
-        <div class="flex items-center justify-between text-sm mb-2">
-          <div id="quizMeta" class="font-medium">--</div>
-          <div id="timer" class="tabular-nums text-slate-600">--:--</div>
-        </div>
-        <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-          <div id="progressBar" class="h-2 bg-brand-500 w-0"></div>
-        </div>
-      </div>
-
-      <!-- Card câu hỏi -->
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
-        <div id="qTitle" class="text-base font-semibold mb-2">—</div>
-        <div id="qText" class="text-[15px] leading-relaxed mb-3">—</div>
-
-        <div id="qOptions" class="space-y-2"></div>
-
-        <div class="mt-4 flex items-center gap-2">
-          <button id="btnPrev" class="flex-1 px-3 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 active:scale-[.985]">← Trước</button>
-          <button id="btnShuffleOne" class="px-3 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 active:scale-[.985]">🔀 đáp án</button>
-          <button id="btnNext" class="flex-1 px-3 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 active:scale-[.985]">Sau →</button>
-        </div>
-
-        <div class="mt-3">
-          <button id="btnSubmit" class="w-full px-4 py-3 rounded-xl bg-brand-600 text-white font-medium hover:bg-brand-700 active:scale-[.985]">Nộp bài</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- VIEW: RESULT -->
-    <section id="view-result" class="hidden fade-in space-y-4">
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
-        <h2 class="text-base font-semibold mb-2">Kết quả</h2>
-        <div id="scoreLine" class="text-[15px] mb-2">—</div>
-        <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-          <div id="scoreBar" class="h-2 bg-brand-500 w-0"></div>
-        </div>
-        <div class="mt-3 flex items-center gap-2">
-          <button id="btnReviewWrong" class="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 active:scale-[.985]">Ôn câu sai</button>
-          <button id="btnRestart" class="flex-1 px-4 py-2.5 rounded-xl bg-brand-600 text-white hover:bg-brand-700 active:scale-[.985]">Làm lại</button>
-        </div>
-      </div>
-
-      <div id="wrongList" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 hidden">
-        <h3 class="text-base font-semibold mb-3">Câu sai</h3>
-        <div id="wrongItems" class="space-y-4"></div>
-      </div>
-    </section>
-
-    <!-- VIEW: FLASHCARDS -->
-    <section id="view-flash" class="hidden fade-in space-y-3">
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
-        <div class="flex flex-col sm:flex-row sm:items-end gap-2 sm:gap-3">
-          <div class="flex-1">
-            <label class="block text-sm mb-1">Nguồn thẻ</label>
-            <select id="flashSource" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-brand-400">
-              <option value="all">Tất cả câu của môn hiện tại</option>
-              <option value="wrong">Chỉ các câu sai gần nhất</option>
-            </select>
-          </div>
-          <div class="flex gap-2">
-            <button id="flashShuffle" class="px-3 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100">🔀 Xáo</button>
-            <button id="flashPrev" class="px-3 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100">←</button>
-            <button id="flashNext" class="px-3 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100">→</button>
-          </div>
-        </div>
-      </div>
-
-      <div id="flashCard" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 text-center">
-        <div id="flashMeta" class="text-sm text-slate-600 mb-2">—</div>
-        <div id="flashQ" class="text-base font-semibold mb-3">—</div>
-        <button id="flashReveal" class="mx-auto px-4 py-2.5 rounded-xl bg-brand-600 text-white hover:bg-brand-700">Hiện đáp án</button>
-        <div id="flashA" class="hidden mt-3 text-[15px] leading-relaxed"></div>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- MUST load data.js BEFORE app script -->
-  <script src="data.js"></script>
-
-  <!-- APP -->
+  <!-- App script -->
   <script>
-  (() => {
-    // ===== Shortcuts =====
-    const $ = (s)=>document.querySelector(s);
-    const byId = (id)=>document.getElementById(id);
-    const alertBox = byId('alert');
+  /***************
+   * UTILITIES
+   ***************/
+  const $ = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+  const waitDOM = fn => (document.readyState === 'loading') ? document.addEventListener('DOMContentLoaded', fn, {once:true}) : fn();
 
-    const showAlert=(msg,type='info')=>{
-      const base='mb-2 p-3 rounded-lg border text-sm';
-      const style= type==='error' ? 'bg-red-50 border-red-200 text-red-700'
-                  : type==='success' ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                  : 'bg-slate-50 border-slate-200 text-slate-700';
-      alertBox.className= base+' '+style;
-      alertBox.textContent = msg;
-      alertBox.classList.remove('hidden');
-      clearTimeout(showAlert._t); showAlert._t=setTimeout(()=>alertBox.classList.add('hidden'),3000);
-    };
+  const escapeHTML = s => s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+  const strip = s => (s||'').replace(/\r/g,'').trim();
+  const normalize = s => strip(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 \-\(\)\[\]\.:,/%]/g,'').replace(/\s+/g,' ').trim();
 
-    const shuffle=(arr)=>{const a=arr.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a;};
-    const escapeHTML=(s)=>String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
-    const deAccent=(s)=> s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-    const norm=(s)=> deAccent(String(s||'')).replace(/\s+/g,' ').replace(/[^\p{L}\p{N}]+/gu,'').toLowerCase().trim();
+  // Simple seedable RNG
+  function xmur3(str) { for(var i=0,h=1779033703^str.length;i<str.length;i++) h=Math.imul(h^str.charCodeAt(i),3432918353), h=h<<13|h>>>19; return function(){ h=Math.imul(h^h>>>16,2246822507); h=Math.imul(h^h>>>13,3266489909); return (h^h>>>16)>>>0; } }
+  function mulberry32(a){ return function(){ var t=a+=0x6D2B79F5; t=Math.imul(t^t>>>15,t|1); t^=t+Math.imul(t^t>>>7,t|61); return ((t^t>>>14)>>>0)/4294967296; } }
+  const seededShuffle = (arr, seedStr) => {
+    const seed = xmur3(seedStr||String(Date.now()))();
+    const rand = mulberry32(seed);
+    const a = arr.slice();
+    for (let i=a.length-1;i>0;i--) { const j = Math.floor(rand()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+    return a;
+  };
 
-    // ===== State =====
-    const S = {
-      subjects: [],
-      raw: new Map(),        // subject -> raw text
-      questions: [],         // current working set
-      current: 0,
-      answers: new Map(),    // qIndex -> k (index in shuffled order)
-      ansOrder: new Map(),   // qIndex -> [permutation]
-      mode: 'practice',
-      timerId: null,
-      timerSec: 0,
-      lastWrongKey: '',      // for flashcards
-    };
+  const saveLS = (k,v) => localStorage.setItem(k, JSON.stringify(v));
+  const loadLS = (k, fallback=null) => { try{ const v=localStorage.getItem(k); return v?JSON.parse(v):fallback; }catch{ return fallback; } };
 
-    // ===== Views =====
-    const V = {
-      setup: byId('view-setup'),
-      quiz: byId('view-quiz'),
-      result: byId('view-result'),
-      flash: byId('view-flash'),
-    };
-    function showView(name){
-      V.setup.classList.toggle('hidden', name!=='setup');
-      V.quiz.classList.toggle('hidden', name!=='quiz');
-      V.result.classList.toggle('hidden', name!=='result');
-      V.flash.classList.toggle('hidden', name!=='flash');
-    }
-
-    // ===== Parse =====
-    function parseQuestions(raw){
-      if(!raw||typeof raw!=='string') return [];
-      raw = raw.replace(/\r\n/g,'\n');
-
-      const blocks = raw.match(/Câu\s+\d+:[\s\S]*?(?=\n[-=]{5,}\n|$)/g) || [];
-      const items = [];
-
-      for(const block of blocks){
-        const m = block.match(/Câu\s+\d+:\s*([\s\S]*?)\nĐáp án đúng:\s*([\s\S]*?)(?:\n|$)/);
-        if(!m) continue;
-        const qText = m[1].trim();
-        const correctText = m[2].trim();
-
-        const optionsArea = (block.match(/Tất cả đáp án:\s*([\s\S]*)$/) || [,''])[1];
-        const optMatches = [...optionsArea.matchAll(/^\s*([A-D])\.\s*(?:[✓\u2713]\s*)?(.+?)\s*$/gm)];
-        const options = optMatches.map(mm => mm[2].trim());
-        if(options.length<2) continue;
-
-        // correct by ✓ mark
-        let correctIndex = -1;
-        const marked = [...optionsArea.matchAll(/^\s*([A-D])\.\s*[✓\u2713]/gm)][0];
-        if(marked){ correctIndex = 'ABCD'.indexOf(marked[1]); }
-
-        // fallback by comparing text
-        if(correctIndex<0){
-          const target = norm(correctText);
-          correctIndex = options.findIndex(o=>{
-            const no = norm(o);
-            return no===target || no.includes(target) || target.includes(no);
-          });
-        }
-        if(correctIndex<0) correctIndex = 0;
-
-        items.push({ text:qText, options, correctIndex, correctText });
-      }
-      return items;
-    }
-
-    // ===== Progress & Timer =====
-    const quizMeta = byId('quizMeta');
-    const progressBar = byId('progressBar');
-    const timerEl = byId('timer');
-
-    function renderProgress(){
-      const total = S.questions.length;
-      const answered = S.answers.size;
-      const pct = Math.round((answered/Math.max(total,1))*100);
-      progressBar.style.width = pct+'%';
-      quizMeta.textContent = `Câu ${S.current+1}/${total}`;
-    }
-
-    function startTimer(minutes = Math.max(10, Math.ceil(S.questions.length/2)) ){
-      stopTimer();
-      S.timerSec = minutes*60;
-      renderTimer();
-      S.timerId = setInterval(()=>{
-        S.timerSec--;
-        renderTimer();
-        if(S.timerSec<=0){ stopTimer(); submitQuiz(); }
-      },1000);
-    }
-    function stopTimer(){ if(S.timerId) clearInterval(S.timerId); S.timerId=null; }
-    function renderTimer(){
-      const s = Math.max(0, S.timerSec);
-      const mm = String(Math.floor(s/60)).padStart(2,'0');
-      const ss = String(s%60).padStart(2,'0');
-      timerEl.textContent = S.mode==='exam' ? `${mm}:${ss}` : '--:--';
-    }
-
-    // ===== Quiz Render =====
-    const qTitle = byId('qTitle');
-    const qText = byId('qText');
-    const qOptions = byId('qOptions');
-
-    function ensureAnsOrder(idx, allowShuffle){
-      if(!S.ansOrder.has(idx)){
-        const n = S.questions[idx].options.length;
-        const base = Array.from({length:n},(_,i)=>i);
-        S.ansOrder.set(idx, allowShuffle ? shuffle(base) : base);
-      }
-      return S.ansOrder.get(idx);
-    }
-
-    function renderQuestion(){
-      const i = S.current, total=S.questions.length;
-      const q = S.questions[i]; if(!q) return;
-
-      qTitle.textContent='Chọn đáp án đúng:';
-      qText.textContent=q.text;
-
-      const order = ensureAnsOrder(i, byId('chkShuffleA').checked);
-      const chosen = S.answers.get(i);
-
-      qOptions.innerHTML='';
-      order.forEach((optIdx,k)=>{
-        const id = `q${i}_o${k}`;
-        const checked = chosen===k;
-        const label = document.createElement('label');
-        label.className = [
-          'block rounded-xl border p-3 transition',
-          checked ? 'border-brand-400 ring-2 ring-brand-300 bg-brand-50' : 'border-slate-300 hover:bg-slate-50'
-        ].join(' ');
-        label.innerHTML = `
-          <div class="flex items-start gap-3">
-            <input type="radio" name="q${i}" id="${id}" class="mt-1 w-5 h-5 text-brand-600 border-slate-300 focus:ring-brand-400"
-                   ${checked?'checked':''} data-k="${k}">
-            <div class="text-[15px] leading-relaxed">${escapeHTML(q.options[optIdx])}</div>
-          </div>
-        `;
-        qOptions.appendChild(label);
+  // Light/Dark
+  const theme = {
+    init(){
+      const pref = loadLS('qp_theme','auto');
+      this.apply(pref);
+      $('#btnTheme').addEventListener('click', ()=>{
+        const cur = document.documentElement.dataset.theme==='dark'?'dark':'light';
+        const next = cur==='dark'?'light':'dark';
+        this.apply(next);
+        saveLS('qp_theme', next);
       });
-
-      renderProgress();
-    }
-
-    // ===== Start / Submit / Result =====
-    function startQuiz(quick=false){
-      const subj = byId('selSubject').value;
-      if(!subj || !S.raw.has(subj)) { showAlert('Không đọc được dữ liệu gốc. Hãy giữ nguyên data.js và chọn môn.', 'error'); return; }
-      S.mode = byId('selMode').value;
-
-      let qs = parseQuestions(S.raw.get(subj));
-      if(!qs.length){ showAlert('Không trích xuất được câu hỏi từ dữ liệu.', 'error'); return; }
-
-      // số câu
-      let need = byId('selCount').value==='all' ? qs.length : Number(byId('selCount').value||10);
-      need = Math.min(need, qs.length);
-
-      if(byId('chkShuffleQ').checked || quick) qs = shuffle(qs);
-      S.questions = qs.slice(0, need);
-
-      S.current=0; S.answers.clear(); S.ansOrder.clear();
-
-      showView('quiz');
-      renderQuestion();
-
-      if(S.mode==='exam') startTimer(); else { stopTimer(); renderTimer(); }
-      showAlert('Bắt đầu làm bài. Chúc bạn làm tốt!','success');
-    }
-
-    function submitQuiz(){
-      stopTimer();
-      const total = S.questions.length;
-      let correct=0; const wrong=[];
-      for(let i=0;i<total;i++){
-        const q = S.questions[i];
-        const order = ensureAnsOrder(i,false);
-        const chosenK = S.answers.get(i);
-        const chosenReal = typeof chosenK==='number' ? order[chosenK] : -1;
-        if(chosenReal===q.correctIndex) correct++;
-        else wrong.push({i,q,chosenK,order});
-      }
-
-      // kết quả
-      const pct = Math.round((correct/Math.max(total,1))*100);
-      byId('scoreLine').textContent = `Đúng ${correct}/${total} câu (${pct}%).`;
-      byId('scoreBar').style.width = pct+'%';
-
-      // lưu wrong vào localStorage cho flashcards
-      try{
-        const subj = byId('selSubject').value;
-        const key = 'wrong_'+norm(subj);
-        S.lastWrongKey = key;
-        const pack = wrong.map(({q})=>({t:q.text, a:q.options[q.correctIndex]}));
-        localStorage.setItem(key, JSON.stringify(pack));
-      }catch(e){}
-
-      // render danh sách sai
-      const box = byId('wrongList');
-      const wrap = byId('wrongItems'); wrap.innerHTML='';
-      if(wrong.length){
-        box.classList.remove('hidden');
-        wrong.forEach(({i,q,chosenK,order})=>{
-          const chosenReal = typeof chosenK==='number' ? order[chosenK] : -1;
-          const chosenText = chosenReal>=0 ? q.options[chosenReal] : '(chưa chọn)';
-          const correctText = q.options[q.correctIndex];
-
-          const div = document.createElement('div');
-          div.className='border border-slate-200 rounded-xl p-3';
-          div.innerHTML = `
-            <div class="text-sm font-medium mb-1">Câu ${i+1}</div>
-            <div class="text-[15px] mb-2">${escapeHTML(q.text)}</div>
-            <div class="text-sm"><span class="font-medium text-red-600">Bạn chọn:</span> ${escapeHTML(chosenText)}</div>
-            <div class="text-sm"><span class="font-medium text-emerald-700">Đáp án đúng:</span> ${escapeHTML(correctText)}</div>
-          `;
-          wrap.appendChild(div);
-        });
+    },
+    apply(mode){
+      if(mode==='auto'){
+        document.documentElement.removeAttribute('data-theme');
+      }else if(mode==='dark'){
+        document.documentElement.setAttribute('data-theme','dark');
+        document.documentElement.classList.add('dark');
       }else{
-        box.classList.add('hidden');
+        document.documentElement.removeAttribute('data-theme');
+        document.documentElement.classList.remove('dark');
+      }
+      $('.i-theme').textContent = document.documentElement.classList.contains('dark') ? '🌞' : '🌙';
+    }
+  };
+
+  /***************
+   * PARSER (chịu lỗi mạnh)
+   ***************/
+  function parseAllFromDataJS(){
+    if(!window.quizData || typeof window.quizData.getAll!=='function') throw new Error('Không tìm thấy window.quizData từ data.js');
+    const sources = window.quizData.getAll(); // [{subject, text}]
+    const subjects = [];
+    for(const src of sources){
+      const subject = strip(src.subject || 'Môn không tên');
+      const text = '\n' + (src.text||'').replace(/\r/g,'').trim() + '\n';
+      const items = parseOneSubject(text);
+      subjects.push({ subject, total: items.length, items });
+    }
+    return subjects;
+  }
+
+  function parseOneSubject(raw){
+    // Chuẩn hóa block separator
+    const cleaned = raw.replace(/\u00A0/g,' ').replace(/\t/g,'  ');
+    const blocks = [];
+    // Regex bắt từng câu:
+    const re = /Câu\s+(\d+)\s*:\s*([\s\S]*?)\n\s*Đáp án đúng\s*:\s*([\s\S]*?)\n\s*Tất cả đáp án\s*:\s*([\s\S]*?)(?=\n[-–—]{5,}|\n?\s*`?\s*$)/gim;
+    let m;
+    while((m = re.exec(cleaned)) !== null){
+      const num = Number(m[1]);
+      const qtext = strip(m[2]);
+      const right = strip(m[3]).replace(/^[-–—•\s]+/,'');
+      const optsRaw = m[4];
+
+      // Rút options
+      const options = [];
+      const om = Array.from(optsRaw.split('\n').map(l=>l.trim())).filter(l=>/^[A-ZĐÀÁÂÃĂẠẢẤẦẨẪẬẮẰẲẴẶBCDĐEÊÈÉẺẼẸỀẾỂỄỆFGHIÍÌỈĨỊJKLMNOPQRSTUÙÚỦŨỤƯỪỨỬỮỰVWXYZ]\./i.test(l)));
+      for(const line of om){
+        // Ví dụ: "A. ✓ Nội dung" hoặc "B.   Nội dung"
+        const mark = line.includes('✓') || line.includes('✔');
+        const [_, key, rest] = line.match(/^([A-ZĐ])\.\s*(.*)$/i) || [];
+        if(key){
+          const text = strip(rest.replace(/[✓✔]/g,'').replace(/^\-+\s*/,''));
+          options.push({ key, text, marked: mark });
+        }
       }
 
-      showView('result');
-      showAlert('Đã chấm bài. Kéo xuống để xem các câu sai (nếu có).','success');
+      // Xác định đáp án đúng
+      let correctKey = null;
+      // 1) theo dấu ✓
+      const marked = options.find(o=>o.marked);
+      if(marked) correctKey = marked.key;
+      // 2) khớp theo "Đáp án đúng: …"
+      if(!correctKey && right){
+        const nRight = normalize(right);
+        // match nếu option chứa hoặc trùng
+        let best = null, bestScore = -1;
+        options.forEach(o=>{
+          const no = normalize(o.text);
+          let score = 0;
+          if(no===nRight) score = 3;
+          else if(no.includes(nRight) || nRight.includes(no)) score = 2;
+          else if(overlap(no, nRight) > 0.6) score = 1; // fuzzy nhẹ
+          if(score>bestScore){ bestScore = score; best = o; }
+        });
+        if(best) correctKey = best.key;
+      }
+
+      // Tạo id ổn định theo nội dung (để lưu tiến độ/SRS)
+      const id = "q_" + hashString(`${qtext}::${options.map(o=>o.text).join('|')}`);
+
+      blocks.push({
+        id, no:num||blocks.length+1, question:qtext, options, correctKey, rightText: right
+      });
     }
+    return blocks;
+  }
 
-    // ===== Flashcards =====
-    let FC = { list:[], idx:0 };
-    function loadFlashcards(){
-      const subj = byId('selSubject').value;
-      if(!subj || !S.raw.has(subj)){ showAlert('Chưa chọn môn cho flashcards.','error'); return; }
+  function overlap(a,b){
+    if(!a||!b) return 0;
+    const as=new Set(a.split(' ')), bs=new Set(b.split(' '));
+    const inter=[...as].filter(x=>bs.has(x)).length;
+    return inter/Math.max(1, Math.min(as.size, bs.size));
+  }
 
-      const src = byId('flashSource').value;
-      let list=[];
-      if(src==='wrong'){
+  function hashString(s){
+    let h = 2166136261>>>0;
+    for (let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return (h>>>0).toString(16);
+  }
+
+  /***************
+   * STATE
+   ***************/
+  const App = {
+    subjects: [],          // [{subject, total, items:[...] }]
+    subjectIdx: 0,
+
+    // filters & config
+    cfg: {
+      mode: 'practice',         // 'practice' | 'exam' | 'flash' | 'reports'
+      count: 20,                // 10 | 20 | 50 | 100 | 'all'
+      randomQ: true,
+      randomA: true,
+      seed: '',
+      durationMin: 30,          // Exam duration
+      tags: [],                 // future: auto-tag filters
+      search: '',
+    },
+
+    // quiz runtime
+    run: {
+      deck: [],                 // câu đang dùng cho lượt hiện tại
+      idx: 0,
+      answers: {},              // id -> 'A' | 'B' ...
+      startAt: 0,
+      endAt: 0,
+      timer: null
+    },
+
+    // persistence
+    srs: loadLS('qp_srs', {/* id: {box:1..5, due:ts} */}),
+    stats: loadLS('qp_stats', {/* subject:{played, correct, wrong, lastAt} */}),
+    wrongPool: loadLS('qp_wrongPool', []),  // mảng id câu sai gần nhất
+
+    save(){ saveLS('qp_srs', this.srs); saveLS('qp_stats', this.stats); saveLS('qp_wrongPool', this.wrongPool); },
+
+    get currentSubject(){ return this.subjects[this.subjectIdx] },
+    setSubjectByName(name){
+      const i = this.subjects.findIndex(s=>s.subject===name);
+      if(i>=0) this.subjectIdx = i;
+    }
+  };
+
+  /***************
+   * VIEWS (SPA)
+   ***************/
+  const Root = $('#viewRoot');
+
+  const Router = {
+    cur:'home',
+    go(view){ this.cur=view; render(); },
+    init(){
+      $$('.nav-btn').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const v = btn.getAttribute('data-view');
+          if(v) this.go(v);
+        });
+      });
+      $('#btnShare').addEventListener('click', ()=> shareLink());
+    }
+  };
+
+  function render(){
+    // Ensure data exists
+    if(App.subjects.length===0){
+      Root.innerHTML = errDataNotFound();
+      return;
+    }
+    // Render view head (filter bar) per route
+    const view = Router.cur;
+    if(view==='home') Root.innerHTML = ViewHome();
+    if(view==='practice') Root.innerHTML = ViewPractice();
+    if(view==='exam') Root.innerHTML = ViewExam();
+    if(view==='flash') Root.innerHTML = ViewFlashcards();
+    if(view==='reports') Root.innerHTML = ViewReports();
+
+    bindCommon();
+    if(view==='home') bindHome();
+    if(view==='practice') bindPractice();
+    if(view==='exam') bindExam();
+    if(view==='flash') bindFlash();
+    if(view==='reports') bindReports();
+    highlightNav(view);
+  }
+
+  function highlightNav(v){
+    $$('.nav-btn').forEach(b=> b.classList.toggle('text-brand-700', b.dataset.view===v) );
+  }
+
+  /* === COMMON FILTER BAR / SELECTS === */
+  function FilterBar({showCount=true, showMode=true, showTimer=false}={}){
+    const subjOpts = App.subjects.map((s,i)=> `<option value="${i}" ${i===App.subjectIdx?'selected':''}>${escapeHTML(s.subject)} (${s.total})</option>` ).join('');
+    const countOpts = [10,20,50,100,'all'].map(n=>`<option value="${n}" ${String(App.cfg.count)===String(n)?'selected':''}>${n==='all'?'Tất cả':n}</option>`).join('');
+    return `
+    <div class="card flex flex-col gap-3">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <label class="text-sm font-semibold">Môn</label>
+        <select id="selSubject" class="rounded-xl ring-1 ring-gray-200 px-3 py-2 bg-white">${subjOpts}</select>
+      </div>
+      ${showMode?`
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <label class="text-sm font-semibold">Chế độ</label>
+        <div class="grid grid-cols-2 gap-2">
+          <button class="btn ${App.cfg.mode==='practice'?'btn-primary':'btn-soft'}" data-mode="practice">Luyện tập</button>
+          <button class="btn ${App.cfg.mode==='exam'?'btn-primary':'btn-soft'}" data-mode="exam">Thi</button>
+        </div>
+      </div>`:''}
+      ${showCount?`
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <label class="text-sm font-semibold">Số câu</label>
+        <select id="selCount" class="rounded-xl ring-1 ring-gray-200 px-3 py-2 bg-white">${countOpts}</select>
+      </div>`:''}
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <label class="text-sm font-semibold">Seed đề (cùng seed ⇒ cùng đề)</label>
+        <input id="inpSeed" class="rounded-xl ring-1 ring-gray-200 px-3 py-2" placeholder="vd: K61-ONTHI" value="${escapeHTML(App.cfg.seed||'')}"/>
+      </div>
+      ${showTimer?`
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <label class="text-sm font-semibold">Thời lượng thi (phút)</label>
+        <input id="inpDuration" type="number" min="5" max="180" class="rounded-xl ring-1 ring-gray-200 px-3 py-2" value="${App.cfg.durationMin}"/>
+      </div>`:''}
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <label class="text-sm font-semibold">Tùy chọn</label>
+        <div class="flex flex-wrap gap-2">
+          <label class="chip"><input id="chkRandomQ" type="checkbox" class="mr-1" ${App.cfg.randomQ?'checked':''}/>Trộn câu</label>
+          <label class="chip"><input id="chkRandomA" type="checkbox" class="mr-1" ${App.cfg.randomA?'checked':''}/>Trộn đáp án</label>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <label class="text-sm font-semibold">Tìm kiếm (từ khóa)</label>
+        <input id="inpSearch" class="rounded-xl ring-1 ring-gray-200 px-3 py-2" placeholder="CSS, PHP, MVC, SPI..." value="${escapeHTML(App.cfg.search||'')}"/>
+      </div>
+    </div>`;
+  }
+
+  /* === HOME === */
+  function ViewHome(){
+    const s = App.currentSubject;
+    return `
+    <section class="space-y-4">
+      ${FilterBar({showTimer:true})}
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="card">
+          <h3 class="font-bold mb-2">Bắt đầu nhanh</h3>
+          <div class="grid grid-cols-2 gap-2">
+            <button id="startPractice" class="btn btn-primary">Luyện ngay</button>
+            <button id="startExam" class="btn btn-soft">Thi ngay</button>
+          </div>
+          <p class="mt-2 text-sm text-gray-500">Môn hiện tại: <span class="font-semibold">${escapeHTML(s.subject)}</span> • ${s.total} câu</p>
+        </div>
+        <div class="card">
+          <h3 class="font-bold mb-2">Ôn sai gần nhất</h3>
+          <p class="text-sm text-gray-600 mb-2">Có ${App.wrongPool.length} câu sai đang lưu.</p>
+          <div class="grid grid-cols-2 gap-2">
+            <button id="startWrongPractice" class="btn btn-soft">Luyện câu sai</button>
+            <button id="startFlashWrong" class="btn btn-soft">Thẻ sai</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="font-bold mb-2">Mẹo nhanh</h3>
+        <ul class="list-disc ml-5 text-sm leading-6 text-gray-600">
+          <li>Phím tắt: <span class="kbd">A</span>/<span class="kbd">B</span>/<span class="kbd">C</span>/<span class="kbd">D</span> để chọn; <span class="kbd">←</span>/<span class="kbd">→</span> chuyển câu; <span class="kbd">Enter</span> nộp bài.</li>
+          <li>Giữ seed cố định để tạo “mã đề” giống nhau khi chia sẻ.</li>
+          <li>Chế độ SRS trong Flashcards để ghi nhớ lâu: Đánh giá <b>Dễ/Vừa/Khó</b>.</li>
+        </ul>
+      </div>
+    </section>`;
+  }
+
+  /* === PRACTICE === */
+  function ViewPractice(){
+    const deck = buildDeck('practice');
+    const q = deck[0];
+    const bar = ProgressBar(0, deck.length);
+    return `
+    <section class="space-y-3">
+      ${FilterBar({showMode:false})}
+      <div class="card">
+        <div class="flex items-center justify-between">
+          <div class="text-sm text-gray-600">Luyện tập • ${deck.length} câu</div>
+          <div class="flex items-center gap-2">
+            ${bar}
+          </div>
+        </div>
+        ${QuestionForm(q, 0, deck.length)}
+        ${NavButtons()}
+      </div>
+    </section>`;
+  }
+
+  /* === EXAM === */
+  function ViewExam(){
+    const deck = buildDeck('exam');
+    const q = deck[0];
+    const bar = ProgressBar(0, deck.length);
+    return `
+    <section class="space-y-3">
+      ${FilterBar({showMode:false, showCount:false, showTimer:true})}
+      <div class="card">
+        <div class="flex items-center justify-between">
+          <div class="text-sm text-gray-600">Thi • ${deck.length} câu</div>
+          <div class="flex items-center gap-3">
+            <div class="chip">⏱️ <span id="examTimer">${App.cfg.durationMin}:00</span></div>
+            ${bar}
+          </div>
+        </div>
+        ${QuestionForm(q, 0, deck.length)}
+        <div class="mt-3 flex flex-wrap gap-2">
+          ${NavButtons()}
+          <button id="btnSubmit" class="btn btn-primary ml-auto">Nộp bài</button>
+        </div>
+      </div>
+    </section>`;
+  }
+
+  /* === FLASHCARDS (SRS) === */
+  function ViewFlashcards(){
+    const pool = buildFlashPool();
+    if(pool.length===0){
+      return `<section class="space-y-3">
+        ${FilterBar({showMode:false})}
+        <div class="card">Chưa có thẻ để học. Hãy luyện/thi để tạo “câu sai” hoặc học toàn bộ.</div>
+      </section>`;
+    }
+    const cur = pool[0];
+    return `
+    <section class="space-y-3">
+      ${FilterBar({showMode:false})}
+      <div class="card">
+        <div class="flex items-center justify-between mb-2">
+          <div class="text-sm text-gray-600">Flashcards • ${pool.length} thẻ</div>
+          <div class="chip" id="fcInfo">Leitner • Box ${getSrs(cur.id).box}</div>
+        </div>
+        <div id="fcCard" class="rounded-2xl bg-brand-50 border border-brand-100 p-4 cursor-pointer select-none">
+          <div class="text-xs text-gray-500 mb-1">Chạm để lật</div>
+          <div class="font-semibold hyphens-any whitespace-pre-wrap" id="fcFront">${escapeHTML(cur.question)}</div>
+          <div class="hidden mt-3" id="fcBack">
+            ${renderAnswerBlock(cur)}
+          </div>
+        </div>
+        <div class="mt-3 grid grid-cols-3 gap-2">
+          <button data-rate="hard" class="btn btn-soft">Khó</button>
+          <button data-rate="good" class="btn btn-soft">Vừa</button>
+          <button data-rate="easy" class="btn btn-primary">Dễ</button>
+        </div>
+      </div>
+    </section>`;
+  }
+
+  /* === REPORTS === */
+  function ViewReports(){
+    const s = App.currentSubject;
+    const r = computeStats(s.items);
+    return `
+    <section class="space-y-3">
+      <div class="card">
+        <h3 class="font-bold mb-2">Báo cáo – ${escapeHTML(s.subject)}</h3>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
+          <div class="card"><div class="text-gray-500">Tổng câu</div><div class="text-2xl font-bold">${s.total}</div></div>
+          <div class="card"><div class="text-gray-500">Đã làm</div><div class="text-2xl font-bold">${r.done}</div></div>
+          <div class="card"><div class="text-gray-500">Đúng</div><div class="text-2xl font-bold text-emerald-600">${r.correct}</div></div>
+          <div class="card"><div class="text-gray-500">Sai</div><div class="text-2xl font-bold text-rose-600">${r.wrong}</div></div>
+        </div>
+        <div class="mt-3">
+          <div class="h-3 w-full rounded-full bg-gray-100 overflow-hidden">
+            <div class="h-full bg-emerald-500" style="width:${(r.correctPct||0)}%"></div>
+          </div>
+          <div class="mt-1 text-xs text-gray-600">Tỉ lệ đúng: ${r.correctPct.toFixed(1)}%</div>
+        </div>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <button id="exportData" class="btn btn-soft">Xuất tiến độ (.json)</button>
+          <input id="importFile" type="file" accept="application/json" class="hidden" />
+          <button id="importData" class="btn btn-soft">Nhập tiến độ</button>
+          <button id="clearWrong" class="btn btn-soft text-rose-600">Xóa bộ câu sai</button>
+        </div>
+      </div>
+    </section>`;
+  }
+
+  /* === SHARED PARTS === */
+  function ProgressBar(cur, total){
+    const pct = Math.round(((cur)/Math.max(1,total))*100);
+    return `<div class="w-40 h-3 bg-gray-100 rounded-full overflow-hidden"><div id="progress" class="h-3 bg-brand-600" style="width:${pct}%"></div></div>`;
+  }
+
+  function QuestionForm(item, idx, total){
+    if(!item) return `<div class="mt-3 text-sm text-rose-600">Không tìm thấy câu hỏi.</div>`;
+    // Xáo đáp án nếu bật
+    const opts = App.cfg.randomA ? seededShuffle(item.options, App.cfg.seed + item.id) : item.options.slice();
+    const selected = App.run.answers[item.id] || null;
+
+    return `
+    <div class="mt-3">
+      <div class="text-xs text-gray-500 mb-1">Câu ${idx+1}/${total}</div>
+      <div class="text-base sm:text-lg font-semibold hyphens-any whitespace-pre-wrap">${escapeHTML(item.question)}</div>
+      <div class="mt-3 grid gap-2">
+        ${opts.map((o,i)=>OptionRow(item.id, o.key, o.text, selected===o.key)).join('')}
+      </div>
+      <div class="mt-3 flex items-center gap-2 text-xs text-gray-500">
+        <span class="chip">Mã: ${item.id.slice(-6)}</span>
+        ${item.correctKey?`<span class="chip">Có đáp án gốc</span>`:`<span class="chip">Chưa nhận diện đáp án</span>`}
+      </div>
+    </div>`;
+  }
+
+  function OptionRow(qid, key, text, checked){
+    return `
+      <label class="rounded-xl border ring-1 ring-gray-200 bg-white p-3 flex gap-3 items-start hover:bg-gray-50 cursor-pointer">
+        <input type="radio" class="mt-1" name="ans_${qid}" value="${key}" ${checked?'checked':''}/>
+        <div>
+          <div class="font-semibold">${key}.</div>
+          <div class="hyphens-any whitespace-pre-wrap">${escapeHTML(text)}</div>
+        </div>
+      </label>
+    `;
+  }
+
+  function NavButtons(){
+    return `
+    <div class="mt-3 flex gap-2">
+      <button id="btnPrev" class="btn btn-soft">← Trước</button>
+      <button id="btnNext" class="btn btn-soft">Sau →</button>
+    </div>`;
+  }
+
+  function renderAnswerBlock(item){
+    let html = '';
+    if(item.correctKey){
+      const opt = item.options.find(o=>o.key===item.correctKey);
+      if(opt){
+        html += `<div class="text-emerald-700 font-semibold">Đáp án đúng: ${opt.key}. ${escapeHTML(opt.text)}</div>`;
+      }
+    } else if(item.rightText){
+      html += `<div class="text-emerald-700 font-semibold">Đáp án đúng: ${escapeHTML(item.rightText)}</div>`;
+    } else {
+      html += `<div class="text-amber-700">Không xác định được đáp án gốc.</div>`;
+    }
+    return html;
+  }
+
+  function errDataNotFound(){
+    return `
+      <section class="card">
+        <h3 class="font-bold text-rose-600">Không đọc được dữ liệu gốc</h3>
+        <p class="text-sm text-gray-600 mt-1">Hãy chắc chắn <b>data.js</b> nằm cùng thư mục và <b>được load trước</b> file này.</p>
+        <ol class="list-decimal text-sm ml-5 mt-2 space-y-1 text-gray-600">
+          <li>Giữ nguyên nội dung <code>data.js</code> như bạn đã gửi (String.raw + backticks).</li>
+          <li>Trong <code>index.html</code> này, thẻ <code>&lt;script src="data.js"&gt;</code> đã nằm TRƯỚC app.</li>
+          <li>Nếu vẫn lỗi, mở DevTools → Console để xem thông báo.</li>
+        </ol>
+      </section>`;
+  }
+
+  /***************
+   * BUILD DECKS
+   ***************/
+  function filterBySearch(items){
+    const q = normalize(App.cfg.search||'');
+    if(!q) return items;
+    return items.filter(it=>{
+      const hay = normalize(it.question + ' ' + it.options.map(o=>o.text).join(' '));
+      return hay.includes(q);
+    });
+  }
+
+  function pickCount(items){
+    const n = App.cfg.count==='all' ? items.length : Math.min(items.length, Number(App.cfg.count)||10);
+    return items.slice(0, n);
+  }
+
+  function buildDeck(mode){
+    const subj = App.currentSubject;
+    let arr = subj.items.slice();
+    // Search filter
+    arr = filterBySearch(arr);
+    // Wrong-only start?
+    if(mode==='practice' && App._startWrongOnly){
+      const set = new Set(App.wrongPool);
+      arr = arr.filter(x=>set.has(x.id));
+      if(arr.length===0) arr = subj.items.slice();
+    }
+    // Shuffle questions
+    arr = App.cfg.randomQ ? seededShuffle(arr, App.cfg.seed||'seed') : arr;
+    // Pick N
+    arr = pickCount(arr);
+    // reset run
+    App.run = { deck: arr, idx: 0, answers: {}, startAt: Date.now(), endAt: 0, timer:null };
+    return arr;
+  }
+
+  function buildFlashPool(){
+    const subj = App.currentSubject;
+    let pool = filterBySearch(subj.items);
+    // Ưu tiên câu sai nếu có
+    const wrongSet = new Set(App.wrongPool);
+    pool = seededShuffle(pool, App.cfg.seed||'flash').sort((a,b)=>{
+      const aw = wrongSet.has(a.id)?1:0, bw = wrongSet.has(b.id)?1:0;
+      if(aw!==bw) return bw-aw; // sai lên trước
+      const ad = getSrs(a.id).due, bd = getSrs(b.id).due;
+      return ad - bd; // đến hạn sớm hơn lên trước
+    });
+    // Giới hạn mềm theo count nếu có
+    if(App.cfg.count!=='all') pool = pool.slice(0, Number(App.cfg.count)||20);
+    App.run = { deck: pool, idx: 0, answers:{}, startAt: Date.now(), endAt:0, timer:null };
+    return pool;
+  }
+
+  /***************
+   * SRS (Leitner)
+   ***************/
+  function getSrs(id){
+    if(!App.srs[id]) App.srs[id] = { box: 1, due: 0 };
+    return App.srs[id];
+  }
+  function srsRate(id, rating){
+    const s = getSrs(id);
+    const now = Date.now();
+    const steps = {1:1, 2:2, 3:4, 4:7, 5:14}; // ngày
+    if(rating==='hard'){ s.box = Math.max(1, s.box-1); }
+    if(rating==='good'){ s.box = Math.min(5, s.box+0); }
+    if(rating==='easy'){ s.box = Math.min(5, s.box+1); }
+    const days = steps[s.box] || 1;
+    s.due = now + days*24*3600*1000;
+    App.save();
+  }
+
+  /***************
+   * EVENTS BINDING
+   ***************/
+  function bindCommon(){
+    // select subject
+    const selSub = $('#selSubject');
+    if(selSub){
+      selSub.addEventListener('change', (e)=>{ App.subjectIdx = Number(e.target.value)||0; render(); });
+    }
+    const selCount = $('#selCount');
+    if(selCount) selCount.addEventListener('change', e=>{ App.cfg.count = e.target.value; });
+    const inpSeed = $('#inpSeed');
+    if(inpSeed) inpSeed.addEventListener('change', e=>{ App.cfg.seed = strip(e.target.value); });
+    const chkQ = $('#chkRandomQ'); if(chkQ) chkQ.addEventListener('change', e=> App.cfg.randomQ = e.target.checked);
+    const chkA = $('#chkRandomA'); if(chkA) chkA.addEventListener('change', e=> App.cfg.randomA = e.target.checked);
+    const inpSearch = $('#inpSearch'); if(inpSearch) inpSearch.addEventListener('input', e=> { App.cfg.search = e.target.value; });
+
+    // Mode buttons (home filter bar)
+    $$('#viewRoot [data-mode]').forEach(b=>{
+      b.addEventListener('click', ()=>{
+        App.cfg.mode = b.getAttribute('data-mode');
+        Router.go(App.cfg.mode==='practice' ? 'practice' : 'exam');
+      });
+    });
+  }
+
+  function bindHome(){
+    $('#startPractice')?.addEventListener('click', ()=>{ App._startWrongOnly=false; Router.go('practice'); });
+    $('#startExam')?.addEventListener('click', ()=> Router.go('exam'));
+    $('#startWrongPractice')?.addEventListener('click', ()=>{ App._startWrongOnly=true; Router.go('practice'); });
+    $('#startFlashWrong')?.addEventListener('click', ()=>{ App.cfg.mode='flash'; Router.go('flash'); });
+  }
+
+  // capture & nav shared
+  function wireQAHotkeys(){
+    const deck = App.run.deck;
+    const cur = deck[App.run.idx];
+    const radios = $$(`input[name="ans_${cur.id}"]`);
+    function chooseKey(k){
+      const r = radios.find(x=>x.value===k);
+      if(r){ r.checked=true; App.run.answers[cur.id]=k; updateProgress(); }
+    }
+    function next(){ if(App.run.idx<deck.length-1){ App.run.idx++; rerenderQA(); } }
+    function prev(){ if(App.run.idx>0){ App.run.idx--; rerenderQA(); } }
+    function onKey(e){
+      if(['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) return;
+      const k = e.key.toLowerCase();
+      if(k==='arrowleft') prev();
+      if(k==='arrowright') next();
+      if(k==='a') chooseKey('A'); if(k==='b') chooseKey('B'); if(k==='c') chooseKey('C'); if(k==='d') chooseKey('D');
+      if(k==='enter' && $('#btnSubmit')) submitExam();
+    }
+    document.addEventListener('keydown', onKey);
+    // detach when route changes by re-render (new listener replaces old)
+  }
+
+  function updateProgress(){
+    const cur = App.run.idx+1, total = App.run.deck.length;
+    const pct = Math.round((cur-1 + (App.run.answers[App.run.deck[App.run.idx].id]?0.5:0))/Math.max(1,total)*100);
+    const bar = $('#progress'); if(bar) bar.style.width = pct + '%';
+  }
+
+  function rerenderQA(){
+    const deck = App.run.deck, i = App.run.idx;
+    const container = $('.card'); // main card
+    const qhtml = QuestionForm(deck[i], i, deck.length);
+    const nav = NavButtons();
+    // Rebuild inner (replace only question segment)
+    const blocks = container.querySelectorAll('.mt-3'); // not super precise; but safe
+    // safer: rebuild all below header line
+    container.innerHTML = `
+      <div class="flex items-center justify-between">
+        <div class="text-sm text-gray-600">${Router.cur==='exam'?'Thi':'Luyện tập'} • ${deck.length} câu</div>
+        <div class="flex items-center gap-3">
+          ${Router.cur==='exam'?`<div class="chip">⏱️ <span id="examTimer">${formatRemain()}</span></div>`:''}
+          ${ProgressBar(i, deck.length)}
+        </div>
+      </div>
+      ${qhtml}
+      <div class="mt-3 flex flex-wrap gap-2">
+        ${nav}
+        ${Router.cur==='exam'?`<button id="btnSubmit" class="btn btn-primary ml-auto">Nộp bài</button>`:''}
+      </div>
+    `;
+    bindQAEvents();
+    updateProgress();
+  }
+
+  function bindQAEvents(){
+    const deck = App.run.deck;
+    const cur = deck[App.run.idx];
+    // radio changes
+    $$(`input[name="ans_${cur.id}"]`).forEach(r=>{
+      r.addEventListener('change', e=>{ App.run.answers[cur.id] = e.target.value; updateProgress(); });
+    });
+    $('#btnPrev')?.addEventListener('click', ()=>{ if(App.run.idx>0){ App.run.idx--; rerenderQA(); } });
+    $('#btnNext')?.addEventListener('click', ()=>{ if(App.run.idx<deck.length-1){ App.run.idx++; rerenderQA(); } });
+    $('#btnSubmit')?.addEventListener('click', submitExam);
+    wireQAHotkeys();
+  }
+
+  function bindPractice(){ bindQAEvents(); }
+
+  function bindExam(){
+    bindQAEvents();
+    // Timer
+    clearInterval(App.run.timer);
+    const end = Date.now() + (App.cfg.durationMin*60*1000);
+    App.run.endAt = end;
+    App.run.timer = setInterval(()=>{
+      const t = $('#examTimer');
+      if(!t) return;
+      const ms = end - Date.now();
+      if(ms<=0){ clearInterval(App.run.timer); t.textContent = '00:00'; submitExam(); }
+      else t.textContent = msToMMSS(ms);
+    }, 500);
+  }
+
+  function msToMMSS(ms){ const s=Math.ceil(ms/1000), m=Math.floor(s/60), ss=(s%60+'').padStart(2,'0'); return `${m}:${ss}`; }
+  function formatRemain(){ const ms = App.run.endAt - Date.now(); return msToMMSS(ms>0?ms:0); }
+
+  function submitExam(){
+    const deck = App.run.deck;
+    // grade
+    let correct=0, wrong=0;
+    const wrongIds = [];
+    for(const it of deck){
+      const user = App.run.answers[it.id]||null;
+      const ok = !!it.correctKey && user===it.correctKey;
+      if(ok) correct++; else wrong++, wrongIds.push(it.id);
+      touchStats(ok);
+      // update wrong pool
+      if(!ok){ if(!App.wrongPool.includes(it.id)) App.wrongPool.push(it.id); }
+    }
+    App.save();
+
+    // show result
+    const scorePct = Math.round(correct/deck.length*100);
+    const html = `
+      <div class="card">
+        <h3 class="font-bold mb-1">Kết quả</h3>
+        <div class="text-sm text-gray-600 mb-2">${correct}/${deck.length} đúng • ${scorePct}%</div>
+        <div class="h-3 w-full rounded-full bg-gray-100 overflow-hidden">
+          <div class="h-full ${scorePct>=50?'bg-emerald-500':'bg-rose-500'}" style="width:${scorePct}%"></div>
+        </div>
+        <div class="mt-3 grid gap-2">
+          ${deck.map((it,i)=> renderReviewRow(it, i, App.run.answers[it.id]||null)).join('')}
+        </div>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <button class="btn btn-primary" id="btnReviewWrong">Ôn lại câu sai</button>
+          <button class="btn btn-soft" id="btnAgain">Làm lại đề này</button>
+          <button class="btn btn-soft" id="btnHome">Về Trang chủ</button>
+        </div>
+      </div>`;
+    Root.innerHTML = html;
+    $('#btnReviewWrong').addEventListener('click', ()=>{ App._startWrongOnly=true; Router.go('practice'); });
+    $('#btnAgain').addEventListener('click', ()=> Router.go('exam'));
+    $('#btnHome').addEventListener('click', ()=> Router.go('home'));
+  }
+
+  function renderReviewRow(it, i, user){
+    const ok = !!it.correctKey && user===it.correctKey;
+    const ans = it.options.find(o=>o.key===user);
+    const corr = it.options.find(o=>o.key===it.correctKey);
+    return `
+      <div class="rounded-xl p-3 ring-1 ${ok?'ring-emerald-100 bg-emerald-50':'ring-rose-100 bg-rose-50'}">
+        <div class="text-xs text-gray-500 mb-1">Câu ${i+1}</div>
+        <div class="font-semibold hyphens-any whitespace-pre-wrap">${escapeHTML(it.question)}</div>
+        <div class="mt-2 text-sm">
+          <div class="${ok?'text-emerald-700':'text-rose-700'}">Bạn chọn: ${ans? `${ans.key}. ${escapeHTML(ans.text)}` : '(chưa chọn)'}</div>
+          <div class="text-emerald-700">Đáp án đúng: ${corr? `${corr.key}. ${escapeHTML(corr.text)}` : escapeHTML(it.rightText||'Chưa xác định')}</div>
+        </div>
+      </div>`;
+  }
+
+  function touchStats(ok){
+    const subj = App.currentSubject.subject;
+    if(!App.stats[subj]) App.stats[subj] = { played:0, correct:0, wrong:0, lastAt:0 };
+    const s = App.stats[subj];
+    s.played++; if(ok) s.correct++; else s.wrong++; s.lastAt=Date.now();
+  }
+
+  function bindFlash(){
+    const pool = App.run.deck;
+    const cur = ()=> pool[App.run.idx];
+    const card = $('#fcCard'), front=$('#fcFront'), back=$('#fcBack'), info=$('#fcInfo');
+
+    const flip = ()=>{ back.classList.toggle('hidden'); };
+    card.addEventListener('click', flip);
+
+    $$('#viewRoot [data-rate]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const rate = btn.getAttribute('data-rate');
+        srsRate(cur().id, rate);
+        // next
+        App.run.idx = (App.run.idx+1) % pool.length;
+        const it = cur();
+        $('#fcFront').textContent = it.question;
+        $('#fcBack').innerHTML = renderAnswerBlock(it);
+        info.textContent = `Leitner • Box ${getSrs(it.id).box}`;
+        if(!back.classList.contains('hidden')) back.classList.add('hidden');
+      });
+    });
+  }
+
+  function bindReports(){
+    $('#exportData')?.addEventListener('click', ()=>{
+      const pack = { srs:App.srs, stats:App.stats, wrongPool:App.wrongPool, v:1, at:Date.now() };
+      const blob = new Blob([JSON.stringify(pack, null, 2)], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href=url; a.download='quiz-progress.json'; a.click();
+      setTimeout(()=>URL.revokeObjectURL(url), 1000);
+    });
+    $('#importData')?.addEventListener('click', ()=> $('#importFile').click());
+    $('#importFile')?.addEventListener('change', (e)=>{
+      const f = e.target.files?.[0]; if(!f) return;
+      const rd = new FileReader();
+      rd.onload = ()=>{
         try{
-          const key = S.lastWrongKey || 'wrong_'+norm(subj);
-          list = JSON.parse(localStorage.getItem(key)||'[]');
-        }catch(e){ list=[]; }
-      }
-      if(!list.length){
-        // lấy tất cả câu của môn
-        const all = parseQuestions(S.raw.get(subj));
-        list = all.map(q=>({t:q.text, a:q.options[q.correctIndex]}));
-      }
-      FC.list = list; FC.idx=0;
-      renderFlash();
+          const obj = JSON.parse(rd.result);
+          if(obj.srs) App.srs = obj.srs;
+          if(obj.stats) App.stats = obj.stats;
+          if(Array.isArray(obj.wrongPool)) App.wrongPool = obj.wrongPool;
+          App.save(); alert('Đã nhập tiến độ!');
+        }catch(err){ alert('File không hợp lệ.'); }
+      };
+      rd.readAsText(f);
+    });
+    $('#clearWrong')?.addEventListener('click', ()=>{
+      if(confirm('Xóa toàn bộ danh sách câu sai gần nhất?')){ App.wrongPool = []; App.save(); alert('Đã xóa.'); }
+    });
+  }
+
+  function computeStats(items){
+    const subj = App.currentSubject.subject;
+    const s = App.stats[subj] || {played:0, correct:0, wrong:0};
+    const done = s.correct + s.wrong;
+    const correctPct = done ? (s.correct/done*100) : 0;
+    return { total: items.length, done, correct: s.correct, wrong: s.wrong, correctPct };
+  }
+
+  async function shareLink(){
+    const url = new URL(location.href);
+    url.searchParams.set('subj', App.currentSubject.subject);
+    url.searchParams.set('count', App.cfg.count);
+    url.searchParams.set('seed', App.cfg.seed||'');
+    url.searchParams.set('search', App.cfg.search||'');
+    try{
+      await navigator.clipboard.writeText(url.toString());
+      alert('Đã sao chép liên kết cấu hình!');
+    }catch{
+      prompt('Sao chép liên kết:', url.toString());
     }
-    function renderFlash(){
-      const n = FC.list.length;
-      if(!n){ byId('flashMeta').textContent='Không có thẻ.'; byId('flashQ').textContent='—'; byId('flashA').classList.add('hidden'); byId('flashA').textContent=''; return; }
-      const cur = FC.list[FC.idx];
-      byId('flashMeta').textContent = `Thẻ ${FC.idx+1}/${n}`;
-      byId('flashQ').textContent = cur.t;
-      byId('flashA').textContent = cur.a;
-      byId('flashA').classList.add('hidden');
-    }
+  }
 
-    // ===== Bindings =====
-    function bind(){
-      // quiz options (delegation)
-      byId('qOptions').addEventListener('change', (e)=>{
-        const input = e.target.closest('input[type=radio]');
-        if(!input) return;
-        const k = Number(input.dataset.k);
-        S.answers.set(S.current, k);
-        renderQuestion();
-      });
+  /* ========= INIT ========= */
+  waitDOM(()=>{
+    theme.init();
 
-      byId('btnPrev').addEventListener('click', ()=>{ S.current=Math.max(0,S.current-1); renderQuestion(); });
-      byId('btnNext').addEventListener('click', ()=>{ S.current=Math.min(S.questions.length-1,S.current+1); renderQuestion(); });
-      byId('btnShuffleOne').addEventListener('click', ()=>{ S.ansOrder.delete(S.current); renderQuestion(); });
-      byId('btnSubmit').addEventListener('click', submitQuiz);
-
-      byId('btnStart').addEventListener('click', ()=>startQuiz(false));
-      byId('btnQuick').addEventListener('click', ()=>{ byId('selCount').value='10'; startQuiz(true); });
-
-      byId('btnRestart').addEventListener('click', ()=>{ showView('setup'); window.scrollTo({top:0,behavior:'smooth'}); });
-      byId('btnReviewWrong').addEventListener('click', ()=> byId('wrongList').classList.toggle('hidden'));
-
-      // nav
-      byId('navHome').addEventListener('click', ()=>{ stopTimer(); showView('setup'); });
-      byId('navFlash').addEventListener('click', ()=>{ stopTimer(); showView('flash'); loadFlashcards(); });
-
-      // flashcards
-      byId('flashSource').addEventListener('change', loadFlashcards);
-      byId('flashShuffle').addEventListener('click', ()=>{ FC.list = shuffle(FC.list); FC.idx=0; renderFlash(); });
-      byId('flashPrev').addEventListener('click', ()=>{ if(!FC.list.length) return; FC.idx=(FC.idx-1+FC.list.length)%FC.list.length; renderFlash(); });
-      byId('flashNext').addEventListener('click', ()=>{ if(!FC.list.length) return; FC.idx=(FC.idx+1)%FC.list.length; renderFlash(); });
-      byId('flashReveal').addEventListener('click', ()=> byId('flashA').classList.toggle('hidden'));
+    // Load & parse data
+    try{
+      App.subjects = parseAllFromDataJS();
+    }catch(err){
+      console.error(err);
+      Root.innerHTML = errDataNotFound();
+      return;
     }
 
-    // ===== Init =====
-    function init(){
-      bind();
-      if(!window.quizData || typeof window.quizData.getAll!=='function'){
-        showAlert('Không đọc được dữ liệu gốc (window.quizData). Hãy giữ nguyên data.js và load trước app.', 'error');
-        byId('btnStart').disabled = true; byId('btnQuick').disabled = true;
-        return;
-      }
-      const all = window.quizData.getAll();
-      if(!Array.isArray(all)||!all.length){ showAlert('Danh sách môn rỗng trong data.js','error'); return; }
-      S.subjects = all.map(x=>x.subject);
-      S.raw.clear();
-      for(const it of all) S.raw.set(it.subject, it.text);
+    // Query params
+    const q = new URLSearchParams(location.search);
+    const subj = q.get('subj'); if(subj) App.setSubjectByName(subj);
+    const count = q.get('count'); if(count) App.cfg.count = count;
+    const seed = q.get('seed'); if(seed) App.cfg.seed = seed;
+    const search = q.get('search'); if(search) App.cfg.search = search;
 
-      const sel = byId('selSubject'); sel.innerHTML='';
-      S.subjects.forEach(s=>{
-        const op=document.createElement('option'); op.value=s; op.textContent=s; sel.appendChild(op);
-      });
+    Router.init();
+    Router.go('home');
 
-      byId('btnStart').disabled = false; byId('btnQuick').disabled = false;
-      showView('setup');
-      showAlert('Dữ liệu đã nạp xong. Chọn môn để bắt đầu.','success');
+    // Register a minimal offline service worker (inlined via Blob)
+    if('serviceWorker' in navigator){
+      const swSrc = `
+        self.addEventListener('install', e=>{
+          e.waitUntil(caches.open('quizpro-v1').then(c=>c.addAll(['./','./index.html','./data.js'])).then(()=>self.skipWaiting()));
+        });
+        self.addEventListener('activate', e=> e.waitUntil(self.clients.claim()));
+        self.addEventListener('fetch', e=>{
+          const req = e.request;
+          e.respondWith(caches.match(req).then(r=> r || fetch(req).then(res=>{
+            const copy = res.clone();
+            caches.open('quizpro-v1').then(c=>c.put(req, copy));
+            return res;
+          }).catch(()=> caches.match('./index.html'))));
+        });
+      `;
+      const blob = new Blob([swSrc], {type:'text/javascript'});
+      const swURL = URL.createObjectURL(blob);
+      navigator.serviceWorker.register(swURL).catch(()=>{});
+      setTimeout(()=>URL.revokeObjectURL(swURL), 5000);
     }
-
-    if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', init); }
-    else { init(); }
-  })();
+  });
   </script>
 </body>
 </html>
