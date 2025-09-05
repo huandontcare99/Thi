@@ -1,24 +1,20 @@
 <!doctype html>
 <html lang="vi">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<title>Quiz Ultra — Setup & Thi</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quiz Ultra — Multi-View</title>
 
-<!-- Tailwind CDN -->
+<!-- Tailwind -->
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
     darkMode: 'class',
     theme: {
       extend: {
-        colors:{ brand:'#2563eb', ok:'#16a34a', bad:'#ef4444' },
-        boxShadow:{ soft:'0 12px 28px -12px rgba(0,0,0,.18)' },
-        animation:{
-          fade:'fade .25s ease',
-          slide:'slide .25s ease',
-          pop:'pop .2s ease'
-        },
+        colors: { brand:'#2563eb', ok:'#16a34a', bad:'#ef4444', ink:'#0f172a' },
+        boxShadow: { soft:'0 12px 28px -12px rgba(0,0,0,.18)' },
+        animation: { fade:'fade .2s ease', slide:'slide .25s ease', pop:'pop .18s ease' },
         keyframes:{
           fade:{from:{opacity:0},to:{opacity:1}},
           slide:{from:{transform:'translateY(8px)',opacity:.0},to:{transform:'translateY(0)',opacity:1}},
@@ -28,94 +24,97 @@
     }
   }
 </script>
+
 <style>
-  /* radio/checkbox đẹp – click cả block */
+  /* Ô đáp án đẹp & chạm cả block */
   .opt input{ display:none; }
   .opt input + label{
     display:block; border:1px solid rgb(226,232,240); background:#fff; border-radius:14px;
-    padding:12px 14px; transition:all .15s ease; cursor:pointer;
+    padding:12px 14px; transition:all .15s; cursor:pointer;
   }
   .dark .opt input + label{ background:#0b1220; border-color:#1f2937; }
-  .opt input:checked + label{ border-color:#2563eb; outline:3px solid rgba(37,99,235,.15); }
-  .is-correct{ border-color:#16a34a !important; background:#f0fdf4 !important; }
-  .dark .is-correct{ background:#0a1a0f !important; }
-  .is-wrong{ border-color:#ef4444 !important; background:#fef2f2 !important; }
-  .dark .is-wrong{ background:#2a0e10 !important; }
-  /* donut kết quả */
-  .donut{ --p:0; width:120px; height:120px; border-radius:999px; background: conic-gradient(#16a34a var(--p), #e2e8f0 0); }
-  .dark .donut{ background: conic-gradient(#16a34a var(--p), #334155 0); }
-  /* chống iOS phóng to khi focus */
+  .opt input:checked + label{ border-color:#2563eb; outline:3px solid rgba(37,99,235,.14); }
+  .is-correct{ border-color:#16a34a!important; background:#f0fdf4!important; }
+  .dark .is-correct{ background:#0a1a0f!important; }
+  .is-wrong{ border-color:#ef4444!important; background:#fef2f2!important; }
+  .dark .is-wrong{ background:#2a0e10!important; }
+  /* Donut kết quả */
+  .donut{ --p:0; width:120px; height:120px; border-radius:999px; background: conic-gradient(#16a34a var(--p), #e2e8f0 0);}
+  .dark .donut{ background: conic-gradient(#16a34a var(--p), #334155 0);}
+  /* Chart ngang đơn giản */
+  .bar{height:10px; border-radius:999px; background:#e2e8f0;}
+  .bar > i{display:block; height:10px; border-radius:999px; background:#2563eb;}
+  /* Chống iOS auto-zoom khi focus */
   @media (max-width:380px){ select,input,button{ font-size:16px; } }
 </style>
 
-<!-- nạp dữ liệu gốc -->
+<!-- dữ liệu gốc -->
 <script src="data.js" defer></script>
 <!-- confetti nhẹ -->
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js" defer></script>
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen">
 
-<!-- ===== Header dùng chung (nhẹ, không che nội dung) ===== -->
+<!-- ===== App Shell ===== -->
 <header class="sticky top-0 z-30 backdrop-blur bg-white/90 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800">
-  <div class="max-w-4xl mx-auto px-3 py-2 flex items-center gap-3">
-    <div class="w-9 h-9 rounded-xl bg-brand text-white flex items-center justify-center font-bold shadow-soft">U</div>
+  <div class="max-w-5xl mx-auto px-3 py-2 flex items-center gap-3">
+    <button id="btnHome" class="w-9 h-9 rounded-xl bg-brand text-white flex items-center justify-center font-bold shadow-soft">U</button>
     <div class="min-w-0">
-      <div class="text-sm font-semibold leading-5">Quiz Ultra</div>
-      <div class="text-[11px] text-slate-500 dark:text-slate-400 -mt-1">Setup & Làm bài (mobile-first)</div>
+      <div class="text-sm font-semibold leading-5" id="appTitle">Quiz Ultra</div>
+      <div class="text-[11px] text-slate-500 dark:text-slate-400 -mt-1" id="subtitle">Mobile-first • Multi-view</div>
     </div>
     <div class="ml-auto flex items-center gap-2">
       <button id="btnTheme" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">🌙</button>
+      <button id="btnNav" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">☰</button>
     </div>
   </div>
 </header>
 
-<main class="max-w-4xl mx-auto px-3 pb-24">
-  <!-- ===== VIEW 1: SETUP ===== -->
-  <section id="viewSetup" class="animate-fade">
-    <!-- cảnh báo -->
+<!-- Drawer điều hướng -->
+<aside id="drawer" class="fixed inset-y-0 left-0 w-[84%] max-w-xs bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 p-3 shadow-xl translate-x-[-110%] transition-transform z-40">
+  <div class="flex items-center gap-2 mb-2">
+    <div class="w-9 h-9 rounded-xl bg-brand text-white flex items-center justify-center font-bold">U</div>
+    <div class="font-semibold">Quiz Ultra</div>
+    <button id="btnCloseDrawer" class="ml-auto px-3 py-1 rounded-xl border border-slate-200 dark:border-slate-700">✕</button>
+  </div>
+  <nav class="space-y-1 text-sm">
+    <button data-goto="#setup" class="navbtn w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800">🏁 Setup</button>
+    <button data-goto="#play" class="navbtn w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800">📝 Làm bài</button>
+    <button data-goto="#flash" class="navbtn w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800">🃏 Flashcards</button>
+    <button data-goto="#review" class="navbtn w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800">🔁 Ôn câu sai</button>
+    <button data-goto="#browser" class="navbtn w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800">📚 Ngân hàng câu hỏi</button>
+    <button data-goto="#stats" class="navbtn w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800">📈 Thống kê</button>
+    <button data-goto="#history" class="navbtn w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800">🗂 Lịch sử bài làm</button>
+    <button data-goto="#settings" class="navbtn w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800">⚙️ Cài đặt</button>
+    <button data-goto="#help" class="navbtn w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800">❓ Hướng dẫn</button>
+  </nav>
+</aside>
+
+<main class="max-w-5xl mx-auto px-3 pb-24">
+
+  <!-- ====== VIEW: SETUP ====== -->
+  <section id="setup" class="animate-fade">
     <div id="warn" class="hidden mt-3 p-3 text-sm rounded-xl bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200">
       Không đọc được dữ liệu gốc. Hãy chắc chắn <b>index.html</b> đặt <b>cùng thư mục</b> với <b>data.js</b>.
     </div>
 
-    <!-- chọn môn -->
-    <div class="mt-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-soft p-4 animate-slide">
-      <div class="text-sm font-semibold mb-2">Chọn môn</div>
-      <select id="selSubject" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2">
-        <option>Đang nạp…</option>
-      </select>
-    </div>
-
-    <!-- chế độ -->
-    <div class="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-      <button data-mode="study" class="modeBtn rounded-2xl p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-soft text-left">
-        <div class="text-base font-bold">Học</div>
-        <div class="text-xs text-slate-500 dark:text-slate-400">Hiện đáp án</div>
-      </button>
-      <button data-mode="practice" class="modeBtn rounded-2xl p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-soft text-left ring-2 ring-brand/60">
-        <div class="text-base font-bold">Luyện tập</div>
-        <div class="text-xs text-slate-500 dark:text-slate-400">Chấm ngay</div>
-      </button>
-      <button data-mode="exam" class="modeBtn rounded-2xl p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-soft text-left">
-        <div class="text-base font-bold">Thi thử</div>
-        <div class="text-xs text-slate-500 dark:text-slate-400">Chấm cuối + thời gian</div>
-      </button>
-      <button data-mode="flash" class="modeBtn rounded-2xl p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-soft text-left">
-        <div class="text-base font-bold">Flashcard</div>
-        <div class="text-xs text-slate-500 dark:text-slate-400">Đảo mặt, SRS nhẹ</div>
-      </button>
-    </div>
-
-    <!-- thông số -->
     <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-      <div class="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-soft p-4">
-        <label class="text-sm font-semibold">Số câu</label>
-        <select id="selCount" class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2">
-          <option value="10">10</option>
-          <option value="20" selected>20</option>
-          <option value="30">30</option>
-          <option value="all">Tất cả</option>
+      <div class="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-soft p-4 animate-slide">
+        <label class="text-sm font-semibold">Chọn môn</label>
+        <select id="selSubject" class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2">
+          <option>Đang nạp…</option>
         </select>
+
         <div class="mt-3 grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-sm font-semibold">Số câu</label>
+            <select id="selCount" class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2">
+              <option value="10">10</option>
+              <option value="20" selected>20</option>
+              <option value="30">30</option>
+              <option value="all">Tất cả</option>
+            </select>
+          </div>
           <div>
             <label class="text-sm font-semibold">Thứ tự</label>
             <select id="selOrder" class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2">
@@ -123,6 +122,9 @@
               <option value="shuffle" selected>Ngẫu nhiên</option>
             </select>
           </div>
+        </div>
+
+        <div class="mt-3 grid grid-cols-2 gap-2">
           <div>
             <label class="text-sm font-semibold">Bộ lọc</label>
             <select id="selFilter" class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2">
@@ -131,32 +133,47 @@
               <option value="wrong">Sai gần đây</option>
             </select>
           </div>
+          <div>
+            <label class="text-sm font-semibold">Chế độ</label>
+            <select id="selMode" class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2">
+              <option value="study">Học (hiện đáp án)</option>
+              <option value="practice" selected>Luyện tập (chấm ngay)</option>
+              <option value="exam">Thi thử (chấm cuối)</option>
+            </select>
+          </div>
+        </div>
+
+        <label class="block mt-3 text-sm font-semibold">Tìm kiếm</label>
+        <input id="txtSearch" placeholder="Từ khóa trong câu / đáp án…" class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2"/>
+
+        <div class="mt-3 grid grid-cols-2 gap-2">
+          <button id="btnStart" class="w-full bg-brand hover:bg-blue-700 text-white rounded-2xl px-5 py-3 font-semibold shadow-soft">BẮT ĐẦU</button>
+          <button data-goto="#flash" class="w-full rounded-2xl px-5 py-3 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">Flashcards</button>
         </div>
       </div>
 
-      <div class="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-soft p-4">
-        <label class="text-sm font-semibold">Tìm kiếm</label>
-        <input id="txtSearch" placeholder="Từ khóa trong câu/đáp án…" class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2"/>
-        <div class="mt-3 flex flex-wrap gap-2">
-          <button id="btnWrong" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">Ôn câu sai</button>
+      <div class="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-soft p-4 animate-slide">
+        <div class="text-sm font-semibold">Tiện ích nhanh</div>
+        <div class="mt-2 flex flex-wrap gap-2">
+          <button id="btnWrongQuick" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">🔁 Ôn câu sai</button>
           <button id="btnExport" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">⬇️ Xuất tiến trình</button>
           <button id="btnImport" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">⬆️ Nhập tiến trình</button>
-          <input id="fileImport" type="file" accept=".json" class="hidden"/>
+          <input id="fileImport" type="file" accept=".json" class="hidden">
         </div>
-      </div>
-    </div>
 
-    <div class="mt-4">
-      <button id="btnStart" class="w-full bg-brand hover:bg-blue-700 text-white rounded-2xl px-5 py-4 font-semibold shadow-soft">BẮT ĐẦU</button>
+        <div class="mt-3 text-xs text-slate-500 dark:text-slate-400">
+          Tổng câu đã luyện: <b id="statTotal">0</b> — Độ chính xác: <b id="statAcc">0%</b>
+        </div>
+        <div class="mt-2 bar"><i id="accBar" style="width:0%"></i></div>
+      </div>
     </div>
   </section>
 
-  <!-- ===== VIEW 2: LÀM BÀI ===== -->
-  <section id="viewPlay" class="hidden animate-fade">
-    <!-- Top info -->
+  <!-- ====== VIEW: PLAY (thi/ôn) ====== -->
+  <section id="play" class="hidden animate-fade">
     <div class="mt-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-soft p-3">
       <div class="flex items-center gap-2">
-        <button id="btnBackSetup" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">← Setup</button>
+        <button class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800" data-goto="#setup">← Setup</button>
         <div id="badgeSubj" class="text-xs px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">Môn</div>
         <div id="badgeMode" class="text-xs px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">Chế độ</div>
         <div class="ml-auto text-xs text-slate-500 dark:text-slate-400" id="timerBox" hidden>⏱ <span id="timer">00:00</span></div>
@@ -167,7 +184,6 @@
       <div id="progText" class="mt-1 text-xs text-slate-500 dark:text-slate-400">0 / 0</div>
     </div>
 
-    <!-- Question Card -->
     <article id="qCard" class="hidden mt-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-soft p-4">
       <h2 id="qTitle" class="text-base font-semibold"></h2>
       <div id="optList" class="mt-3 space-y-2"></div>
@@ -187,24 +203,7 @@
       </div>
     </article>
 
-    <!-- Flashcards -->
-    <article id="flashWrap" class="hidden mt-3 animate-pop">
-      <div class="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-soft p-4">
-        <div id="fcFront" class="text-base font-semibold"></div>
-        <div id="fcBack" class="mt-2 text-sm hidden"></div>
-        <div class="mt-2 text-xs text-slate-500 dark:text-slate-400">Chạm “Lật” để xem đáp án</div>
-        <div class="mt-3 flex flex-wrap gap-2">
-          <button id="fcPrev" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">←</button>
-          <button id="fcFlip" class="px-4 py-2 rounded-xl bg-brand text-white">Lật</button>
-          <button id="fcAgain" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">🕑 Chưa nhớ</button>
-          <button id="fcGood" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">✓ Nhớ rồi</button>
-          <button id="fcNext" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">→</button>
-        </div>
-        <div id="fcMeta" class="mt-1 text-xs text-slate-500 dark:text-slate-400"></div>
-      </div>
-    </article>
-
-    <!-- Result -->
+    <!-- Kết quả -->
     <article id="resultCard" class="hidden mt-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-soft p-4 animate-pop">
       <div class="flex items-center gap-4">
         <div id="donut" class="donut" style="--p:0deg"></div>
@@ -215,32 +214,140 @@
         </div>
       </div>
       <div class="mt-3 flex flex-wrap gap-2">
-        <button id="btnReviewWrong" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">Luyện lại câu sai</button>
+        <button id="btnReviewWrong" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800" data-goto="#review">Ôn các câu sai</button>
         <button id="btnRestart" class="px-4 py-2 rounded-xl bg-brand text-white">Làm lại</button>
       </div>
     </article>
+  </section>
 
-    <!-- Grid câu hỏi (bottom sheet đơn giản) -->
-    <div id="sheet" class="hidden fixed inset-x-0 bottom-0 z-40">
-      <div class="mx-auto max-w-4xl rounded-t-2xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 animate-slide">
-        <div class="p-3 flex items-center gap-2 border-b border-slate-200 dark:border-slate-800">
-          <div class="font-semibold">Danh sách câu</div>
-          <button id="btnSheetClose" class="ml-auto px-3 py-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">Đóng</button>
-        </div>
-        <div id="qGrid" class="p-3 grid grid-cols-10 gap-1 max-h-[40vh] overflow-auto"></div>
+  <!-- ====== VIEW: FLASHCARDS ====== -->
+  <section id="flash" class="hidden animate-fade">
+    <div class="mt-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-soft p-4">
+      <div class="flex items-center gap-2">
+        <button class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800" data-goto="#setup">← Setup</button>
+        <div class="font-semibold">Flashcards</div>
+        <div class="ml-auto text-xs text-slate-500 dark:text-slate-400" id="fcMeta"></div>
       </div>
+      <div id="fcFront" class="mt-3 text-base font-semibold"></div>
+      <div id="fcBack" class="mt-2 text-sm hidden"></div>
+      <div class="mt-2 text-xs text-slate-500 dark:text-slate-400">Chạm “Lật” để xem đáp án</div>
+      <div class="mt-3 flex flex-wrap gap-2">
+        <button id="fcPrev" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">←</button>
+        <button id="fcFlip" class="px-4 py-2 rounded-2xl bg-brand text-white">Lật</button>
+        <button id="fcAgain" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">🕑 Chưa nhớ</button>
+        <button id="fcGood" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">✓ Nhớ rồi</button>
+        <button id="fcNext" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">→</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== VIEW: REVIEW (câu sai) ====== -->
+  <section id="review" class="hidden animate-fade">
+    <div class="mt-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-soft p-4">
+      <div class="flex items-center gap-2">
+        <button class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800" data-goto="#setup">← Setup</button>
+        <div class="font-semibold">Ôn câu sai gần đây</div>
+        <button id="btnClearWrong" class="ml-auto px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">Xóa danh sách</button>
+      </div>
+      <div id="wrongList" class="mt-3 space-y-2"></div>
+    </div>
+  </section>
+
+  <!-- ====== VIEW: BROWSER (duyệt ngân hàng) ====== -->
+  <section id="browser" class="hidden animate-fade">
+    <div class="mt-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-soft p-4">
+      <div class="flex items-center gap-2">
+        <div class="font-semibold">Ngân hàng câu hỏi</div>
+        <div class="ml-auto flex gap-2">
+          <select id="brSubj" class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1 text-sm"></select>
+          <input id="brSearch" placeholder="Tìm trong câu/đáp án…" class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1 text-sm">
+        </div>
+      </div>
+      <div id="brList" class="mt-3 space-y-2"></div>
+    </div>
+  </section>
+
+  <!-- ====== VIEW: STATS ====== -->
+  <section id="stats" class="hidden animate-fade">
+    <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+      <div class="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-soft p-4">
+        <div class="flex items-center gap-4">
+          <div id="sumDonut" class="donut" style="--p:0deg"></div>
+          <div>
+            <div class="text-lg font-bold">Tổng quan</div>
+            <div class="text-sm text-slate-600 dark:text-slate-300" id="sumText">—</div>
+          </div>
+        </div>
+        <div class="mt-3 text-xs text-slate-500 dark:text-slate-400">Độ chính xác</div>
+        <div class="bar"><i id="sumBar" style="width:0%"></i></div>
+      </div>
+
+      <div class="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-soft p-4">
+        <div class="text-lg font-bold">Theo môn</div>
+        <div id="bySubj" class="mt-2 space-y-2"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== VIEW: HISTORY ====== -->
+  <section id="history" class="hidden animate-fade">
+    <div class="mt-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-soft p-4">
+      <div class="flex items-center gap-2">
+        <div class="font-semibold">Lịch sử bài làm</div>
+        <button id="btnClearHist" class="ml-auto px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">Xóa lịch sử</button>
+      </div>
+      <div id="histList" class="mt-3 space-y-2"></div>
+    </div>
+  </section>
+
+  <!-- ====== VIEW: SETTINGS ====== -->
+  <section id="settings" class="hidden animate-fade">
+    <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+      <div class="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-soft p-4">
+        <div class="text-lg font-bold">Giao diện</div>
+        <div class="mt-2 flex gap-2">
+          <button id="setLight" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700">☀️ Sáng</button>
+          <button id="setDark" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700">🌙 Tối</button>
+          <button id="setAuto" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700">🖥 Auto</button>
+        </div>
+      </div>
+
+      <div class="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-soft p-4">
+        <div class="text-lg font-bold">Dữ liệu</div>
+        <div class="mt-2 flex flex-wrap gap-2">
+          <button id="btnExport2" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700">⬇️ Xuất tiến trình</button>
+          <button id="btnImport2" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700">⬆️ Nhập tiến trình</button>
+          <input id="fileImport2" type="file" accept=".json" class="hidden">
+          <button id="btnReset" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700">🗑 Xóa toàn bộ (LS)</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== VIEW: HELP ====== -->
+  <section id="help" class="hidden animate-fade">
+    <div class="mt-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-soft p-4">
+      <div class="text-lg font-bold">Hướng dẫn nhanh</div>
+      <ul class="mt-2 text-sm list-disc pl-5 space-y-1 text-slate-700 dark:text-slate-300">
+        <li>Vào <b>Setup</b> chọn môn, chế độ, số câu → <b>Bắt đầu</b>.</li>
+        <li><b>Học</b>: hiện đáp án; <b>Luyện tập</b>: chấm ngay; <b>Thi thử</b>: đếm giờ, nộp bài mới chấm.</li>
+        <li><b>Flashcards</b>: lật thẻ, đánh dấu <i>Chưa nhớ / Nhớ rồi</i>.</li>
+        <li><b>Ôn câu sai</b>: lưu tự động sau mỗi bài.</li>
+        <li><b>Ngân hàng</b>: duyệt & tìm toàn bộ câu; đúng/đáp án được đánh dấu.</li>
+        <li><b>Thống kê</b>: tổng quan & theo môn, có biểu đồ CSS.</li>
+        <li><b>Lịch sử</b>: xem bài đã làm & luyện lại cấu hình tương tự.</li>
+      </ul>
     </div>
   </section>
 </main>
 
-<!-- Thanh hành động đáy (chỉ khi làm bài) -->
-<footer id="footerBar" class="fixed inset-x-0 bottom-0 z-30 hidden">
-  <div class="max-w-4xl mx-auto px-3 pb-[env(safe-area-inset-bottom)]">
+<!-- Thanh điều khiển khi làm bài (không che nội dung) -->
+<footer id="playBar" class="fixed inset-x-0 bottom-0 z-30 hidden">
+  <div class="max-w-5xl mx-auto px-3 pb-[env(safe-area-inset-bottom)]">
     <div class="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-soft p-2 flex gap-2">
       <button id="bPrev" class="flex-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">←</button>
       <button id="bReveal" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">Đáp án</button>
       <button id="bCheck" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">Chấm</button>
-      <button id="bSheet" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">Danh sách</button>
       <button id="bSubmit" class="px-3 py-2 rounded-xl bg-brand text-white">Nộp</button>
       <button id="bNext" class="flex-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">→</button>
     </div>
@@ -251,104 +358,67 @@
 (function(){
   "use strict";
 
-  // ---------- utils ----------
+  /* ---------- helpers ---------- */
   const $ = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
   const byId = id => document.getElementById(id);
   const on = (el, ev, fn) => el && el.addEventListener(ev, fn, {passive: ev.startsWith('touch')});
+  const letters=['A','B','C','D','E','F','G'];
 
   const norm = s => (s??'').toString().replace(/\s+/g,' ').trim()
     .normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[“”"']/g,'').toLowerCase();
-  const letters=['A','B','C','D','E','F','G'];
-  const LS_BOOK='qu_book', LS_WRONG='qu_wrong', LS_STATS='qu_stats';
+
+  const vibrate = ms => { if(navigator.vibrate) try{ navigator.vibrate(ms); }catch{} };
+  const fire = () => { if(typeof confetti==='function') confetti({particleCount:36,spread:55,origin:{y:.82}}); };
+
+  const LS_BOOK='qu_book', LS_WRONG='qu_wrong', LS_STATS='qu_stats', LS_HIST='qu_hist';
   const loadLS=(k,def)=>{ try{return JSON.parse(localStorage.getItem(k)) ?? def;}catch{return def;} };
   const saveLS=(k,v)=>localStorage.setItem(k, JSON.stringify(v));
-  const vibrate = ms => { if(navigator.vibrate) try{ navigator.vibrate(ms); }catch{} };
-  const fire = () => { if(typeof confetti==='function') confetti({particleCount:36,spread:55,origin:{y:.8}}); };
 
-  // ---------- elements ----------
-  const viewSetup = byId('viewSetup');
-  const viewPlay  = byId('viewPlay');
-  const footerBar = byId('footerBar');
-  const warn = byId('warn');
-
-  // setup elems
-  const selSubject = byId('selSubject');
-  const selCount = byId('selCount');
-  const selOrder = byId('selOrder');
-  const selFilter = byId('selFilter');
-  const txtSearch = byId('txtSearch');
-  const btnStart = byId('btnStart');
-  const btnWrong = byId('btnWrong');
-  const btnExport = byId('btnExport');
-  const btnImport = byId('btnImport');
-  const fileImport = byId('fileImport');
-  const btnTheme = byId('btnTheme');
-  const modeBtns = Array.from(document.querySelectorAll('.modeBtn'));
-  let setupMode = 'practice';
-
-  // play elems
-  const btnBackSetup = byId('btnBackSetup');
-  const badgeSubj = byId('badgeSubj');
-  const badgeMode = byId('badgeMode');
-  const progress = byId('progress');
-  const progText = byId('progText');
-  const timerBox = byId('timerBox'), timerLbl = byId('timer');
-
-  const qCard = byId('qCard'), qTitle = byId('qTitle'), optList = byId('optList');
-  const expWrap = byId('expWrap'), expText = byId('expText');
-
-  const btnPrev = byId('btnPrev'), btnNext = byId('btnNext'), btnCheck = byId('btnCheck'), btnReveal = byId('btnReveal'), btnBookmark = byId('btnBookmark'), btnSubmit = byId('btnSubmit');
-
-  // bottom bar
-  const bPrev=byId('bPrev'), bNext=byId('bNext'), bCheck=byId('bCheck'), bReveal=byId('bReveal'), bSubmit=byId('bSubmit'), bSheet=byId('bSheet');
-
-  // sheet
-  const sheet = byId('sheet'), qGrid = byId('qGrid'), btnSheetClose = byId('btnSheetClose');
-
-  // result
-  const resultCard=byId('resultCard'), donut=byId('donut'), scoreText=byId('scoreText'), timeText=byId('timeText'), btnReviewWrong=byId('btnReviewWrong'), btnRestart=byId('btnRestart');
-
-  // flash
-  const flashWrap = byId('flashWrap'), fcFront=byId('fcFront'), fcBack=byId('fcBack'), fcPrev=byId('fcPrev'), fcNext=byId('fcNext'), fcFlip=byId('fcFlip'), fcAgain=byId('fcAgain'), fcGood=byId('fcGood'), fcMeta=byId('fcMeta');
-
-  // ---------- state ----------
-  const state = {
+  /* ---------- state ---------- */
+  const S = {
     subjects: [],
     subjIdx: 0,
     mode: 'practice',
-    order:'shuffle',
-    filter:'all',
-    search:'',
-    pool:[],
-    cur:0,
-    answers:{},    // i -> pick
-    checked:{},    // i -> true
-    correct:0, wrong:0,
+    order: 'shuffle',
+    filter: 'all',
+    search: '',
+    pool: [],
+    cur: 0,
+    answers: {},
+    checked: {},
+    correct: 0,
+    wrong: 0,
     bookmarks: loadLS(LS_BOOK,{}),
-    wrongBank: loadLS(LS_WRONG,[]),
-    stats: loadLS(LS_STATS,{total:0,correct:0}),
+    wrongBank: loadLS(LS_WRONG,[]), // [{s,q}]
+    stats: loadLS(LS_STATS,{total:0,correct:0,bySubj:{}}),
+    history: loadLS(LS_HIST,[]),    // [{id, t, subjName, mode, total, correct, secs}]
     timer:null, seconds:0,
     flash:{ list:[], i:0 }
   };
 
-  // ---------- data loading ----------
+  /* ---------- parser & data ---------- */
   function parseLegacyText(raw){
     if(!raw) return [];
-    const blocks=[]; const re=/(^|\n)Câu\s*\d+\s*:[\s\S]*?(?=(?:\n[-=]{3,}\s*\n)|(?:\n\s*Câu\s*\d+\s*:)|\s*$)/gi;
-    let m; while((m=re.exec(raw))) blocks.push(m[0]);
+    const blocks=[]; const re=/(^|\n)Cau|(^|\n)Câu\s*\d+\s*:[\s\S]*?(?=(?:\n[-=]{3,}\s*\n)|(?:\n\s*Câu\s*\d+\s*:)|\s*$)/gi;
+    let m;
+    // dùng pattern chặt hơn để tránh miss
+    const re2=/(^|\n)Câu\s*\d+\s*:[\s\S]*?(?=(?:\n[-=]{3,}\s*\n)|(?:\n\s*Câu\s*\d+\s*:)|\s*$)/gi;
+    while((m=re2.exec(raw))) blocks.push(m[0]);
 
     const qs=[];
     for(const b of blocks){
-      const head=/Câu\s*\d+\s*:\s*([\s\S]*?)\n\s*Đáp án đúng:\s*([^\n]+)\s*/i.exec(b);
+      const head=/Câu\s*\d+\s*:\s*([\s\S]*?)\n\s*Đáp\s*án\s*đúng\s*[:：]\s*([^\n]+)\s*/i.exec(b);
       if(!head) continue;
       const qText=head[1].trim();
       const correctText=head[2].trim();
 
-      let optPart=/Tất cả đáp án:\s*([\s\S]*)/i.exec(b)?.[1] ?? '';
+      let optPart=/Tất\s*cả\s*đáp\s*án\s*[:：]\s*([\s\S]*)/i.exec(b)?.[1] ?? '';
       const lines=optPart.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
 
       const opts=[];
       for(const ln of lines){
+        // Dạng "A. ✓ text" hoặc "A. text"
         const mm=/^[A-ZĐ]\.\s*(.+)$/.exec(ln);
         if(!mm) continue;
         let text=mm[1].trim();
@@ -372,7 +442,6 @@
   function inferSubject(raw,fallback){ const m=/MÔN\s*[:：]\s*([^\n]+)/i.exec(raw||''); return m?m[1].trim():fallback||'Môn'; }
 
   async function loadSubjects(){
-    // 1) API cũ
     if(window.quizData?.getAll){
       try{
         const arr=window.quizData.getAll();
@@ -381,7 +450,6 @@
         if(subs.length) return subs;
       }catch(e){}
     }
-    // 2) biến RAW_ + SUBJECT_
     const rawKeys = Object.keys(window).filter(k=>/^RAW_/.test(k));
     if(rawKeys.length){
       const list=[];
@@ -394,7 +462,6 @@
       const subs=list.filter(s=>s.questions.length);
       if(subs.length) return subs;
     }
-    // 3) data.txt (tuỳ chọn)
     try{
       const r=await fetch('data.txt',{cache:'no-store'});
       if(r.ok){
@@ -405,186 +472,180 @@
         if(Array.isArray(j?.subjects)) return j.subjects;
       }
     }catch{}
-
     return [];
   }
 
-  // ---------- setup UI ----------
-  function renderSubjects(){
-    selSubject.innerHTML='';
-    state.subjects.forEach((s,i)=>{
-      const o=document.createElement('option');
-      o.value=i; o.textContent=s.name||('Môn '+(i+1));
-      selSubject.appendChild(o);
-    });
-    state.subjIdx=0;
+  /* ---------- router ---------- */
+  function go(hash){
+    const id = (hash||'#setup').replace(/^#/,'');
+    // hide all
+    $$('main > section').forEach(s=>s.classList.add('hidden'));
+    const el = byId(id);
+    if(el){ el.classList.remove('hidden'); location.hash='#'+id; }
+    // update title/subtitle
+    const map = {setup:'Setup', play:'Làm bài', flash:'Flashcards', review:'Ôn câu sai', browser:'Ngân hàng câu hỏi', stats:'Thống kê', history:'Lịch sử', settings:'Cài đặt', help:'Hướng dẫn'};
+    byId('appTitle').textContent = 'Quiz Ultra — '+(map[id]||'');
+    // play bar chỉ trong view play
+    byId('playBar').classList.toggle('hidden', id!=='play');
+    // đóng drawer
+    drawer(false);
+    // refresh nội dung view động
+    if(id==='review') renderWrongView();
+    if(id==='browser') renderBrowser();
+    if(id==='stats') renderStats();
+    if(id==='history') renderHistory();
   }
-  modeBtns.forEach(btn=>{
-    on(btn,'click',()=>{
-      modeBtns.forEach(b=>b.classList.remove('ring-2','ring-brand/60'));
-      btn.classList.add('ring-2','ring-brand/60');
-      setupMode = btn.dataset.mode;
-    });
-  });
+  function drawer(show){ const el=$('#drawer'); if(!el) return; el.style.transform = show? 'translateX(0)' : 'translateX(-110%)'; }
 
-  // ---------- play helpers ----------
+  /* ---------- UI elems ---------- */
+  const selSubject=byId('selSubject'), selCount=byId('selCount'), selOrder=byId('selOrder'), selFilter=byId('selFilter'), selMode=byId('selMode'), txtSearch=byId('txtSearch');
+  const statTotal=byId('statTotal'), statAcc=byId('statAcc'), accBar=byId('accBar');
+
+  // play
+  const badgeSubj=byId('badgeSubj'), badgeMode=byId('badgeMode'), progress=byId('progress'), progText=byId('progText'), timerBox=byId('timerBox'), timerLbl=byId('timer');
+  const qCard=byId('qCard'), qTitle=byId('qTitle'), optList=byId('optList'), expWrap=byId('expWrap'), expText=byId('expText');
+  const btnPrev=byId('btnPrev'), btnNext=byId('btnNext'), btnCheck=byId('btnCheck'), btnReveal=byId('btnReveal'), btnBookmark=byId('btnBookmark'), btnSubmit=byId('btnSubmit');
+  const resultCard=byId('resultCard'), donut=byId('donut'), scoreText=byId('scoreText'), timeText=byId('timeText'), btnReviewWrong=byId('btnReviewWrong'), btnRestart=byId('btnRestart');
+
+  // play footer
+  const bPrev=byId('bPrev'), bNext=byId('bNext'), bCheck=byId('bCheck'), bReveal=byId('bReveal'), bSubmit=byId('bSubmit');
+
+  // flash
+  const fcFront=byId('fcFront'), fcBack=byId('fcBack'), fcPrev=byId('fcPrev'), fcNext=byId('fcNext'), fcFlip=byId('fcFlip'), fcAgain=byId('fcAgain'), fcGood=byId('fcGood'), fcMeta=byId('fcMeta');
+
+  /* ---------- build UI ---------- */
+  function renderSubjectsSelects(){
+    selSubject.innerHTML=''; const br=byId('brSubj'); br.innerHTML='';
+    S.subjects.forEach((s,i)=>{
+      const o=document.createElement('option'); o.value=i; o.textContent=s.name||('Môn '+(i+1));
+      const o2=o.cloneNode(true);
+      selSubject.appendChild(o); br.appendChild(o2);
+    });
+    updateHomeStats();
+  }
+  function updateHomeStats(){
+    const total=S.stats.total||0; const acc= total? Math.round((S.stats.correct*100)/total) : 0;
+    statTotal.textContent=total; statAcc.textContent=acc+'%'; accBar.style.width=acc+'%';
+  }
+
+  /* ---------- session building ---------- */
   function makePool(){
-    const subj=state.subjects[state.subjIdx]; if(!subj) return [];
+    const subj=S.subjects[S.subjIdx]; if(!subj) return [];
     let arr=subj.questions.map((q,idx)=>({...q,_id:idx}));
-    if(state.search.trim()){
-      const key=norm(state.search);
-      arr=arr.filter(q=> norm(q.text).includes(key) || q.options.some(o=>norm(o).includes(key)));
+    const key=norm(S.search);
+    if(key){ arr=arr.filter(q=> norm(q.text).includes(key) || q.options.some(o=>norm(o).includes(key))); }
+    if(S.filter==='bookmarked'){
+      arr=arr.filter(q=> !!S.bookmarks[`${S.subjIdx}:${q._id}`]);
+    }else if(S.filter==='wrong'){
+      const set=new Set(S.wrongBank.map(x=>`${x.s}:${x.q}`));
+      arr=arr.filter(q=> set.has(`${S.subjIdx}:${q._id}`));
     }
-    if(state.filter==='bookmarked'){
-      arr=arr.filter(q => !!state.bookmarks[`${state.subjIdx}:${q._id}`]);
-    }else if(state.filter==='wrong'){
-      const set=new Set(state.wrongBank.map(x=>`${x.s}:${x.q}`));
-      arr=arr.filter(q=>set.has(`${state.subjIdx}:${q._id}`));
-    }
-    if(state.order==='shuffle') arr.sort(()=>Math.random()-.5);
+    if(S.order==='shuffle') arr.sort(()=>Math.random()-.5);
     const need = (selCount.value==='all') ? arr.length : Math.min(+selCount.value||20, arr.length);
     return arr.slice(0,need);
   }
-  function showSetup(){ viewSetup.classList.remove('hidden'); viewPlay.classList.add('hidden'); footerBar.classList.add('hidden'); window.scrollTo({top:0}); }
-  function showPlay(){ viewSetup.classList.add('hidden'); viewPlay.classList.remove('hidden'); footerBar.classList.remove('hidden'); window.scrollTo({top:0}); }
 
-  // ---------- render câu ----------
+  /* ---------- render Question ---------- */
+  function safeText(el, text){
+    // hiển thị text có thể chứa < > như đề bài mẫu
+    el.textContent = text;
+  }
   function renderQuestion(){
-    const q=state.pool[state.cur];
+    const q=S.pool[S.cur];
     if(!q){ qCard.classList.add('hidden'); return; }
     qCard.classList.remove('hidden');
-    qTitle.textContent = `Câu ${state.cur+1}: ${q.text}`;
+    safeText(qTitle, `Câu ${S.cur+1}: ${q.text}`);
     optList.innerHTML=''; expWrap.classList.add('hidden'); expText.textContent=q.explain||'';
 
     q.options.forEach((o,i)=>{
-      const id=`q${state.cur}-o${i}`;
+      const id=`q${S.cur}-o${i}`;
       const wrap=document.createElement('div'); wrap.className='opt';
-      const inp=document.createElement('input'); inp.type='radio'; inp.name=`q${state.cur}`; inp.id=id; inp.value=i;
-      inp.checked = (state.answers[state.cur]===i);
-      inp.onchange=()=>{ state.answers[state.cur]=i; if(state.mode==='practice'){ markCurrent(true); } };
+      const inp=document.createElement('input'); inp.type='radio'; inp.name=`q${S.cur}`; inp.id=id; inp.value=i; inp.checked=(S.answers[S.cur]===i);
+      inp.onchange=()=>{ S.answers[S.cur]=i; if(S.mode==='practice'){ markCurrent(true); } };
       const lab=document.createElement('label'); lab.setAttribute('for',id);
-      lab.innerHTML=`<div class="flex gap-2"><div class="text-slate-500 dark:text-slate-400">${letters[i]}.</div><div class="flex-1 break-words">${o}</div></div>`;
+      const row=document.createElement('div'); row.className='flex gap-2 items-start';
+      const lead=document.createElement('div'); lead.className='text-slate-500 dark:text-slate-400'; lead.textContent=letters[i]+'.';
+      const text=document.createElement('div'); text.className='flex-1 break-words'; text.textContent=o;
+      row.appendChild(lead); row.appendChild(text); lab.appendChild(row);
       wrap.appendChild(inp); wrap.appendChild(lab); optList.appendChild(wrap);
     });
 
-    const key=`${state.subjIdx}:${q._id}`;
-    btnBookmark.textContent = state.bookmarks[key] ? '🔖 Đã đánh dấu' : '🔖 Đánh dấu';
+    const key=`${S.subjIdx}:${q._id}`;
+    btnBookmark.textContent = S.bookmarks[key] ? '🔖 Đã đánh dấu' : '🔖 Đánh dấu';
 
-    // progress
-    const total=state.pool.length||0;
-    const cur=state.cur+1; progText.textContent=`${Math.min(cur,total)} / ${total}`;
+    const total=S.pool.length||0; const cur=S.cur+1; progText.textContent=`${Math.min(cur,total)} / ${total}`;
     progress.style.width = total? `${(Math.min(cur,total)/total)*100}%`:'0%';
   }
   function clearMarks(){ optList.querySelectorAll('label').forEach(el=>el.classList.remove('is-correct','is-wrong','animate-pop')); }
   function markCurrent(fromPick=false){
-    const q=state.pool[state.cur]; const pick=state.answers[state.cur];
+    const q=S.pool[S.cur]; const pick=S.answers[S.cur];
     clearMarks();
     const labs=optList.querySelectorAll('label');
     if(labs[q.answer]) labs[q.answer].classList.add('is-correct','animate-pop');
     if(pick!=null && pick!==q.answer && labs[pick]) labs[pick].classList.add('is-wrong');
-    if(fromPick && !state.checked[state.cur]){
-      state.checked[state.cur]=true;
-      if(pick===q.answer){ state.correct++; fire(); } else { state.wrong++; addWrong(q._id); vibrate(20); }
+    if(fromPick && !S.checked[S.cur]){
+      S.checked[S.cur]=true;
+      if(pick===q.answer){ S.correct++; fire(); } else { S.wrong++; addWrong(q._id); vibrate(20); }
     }
-    if(state.mode!=='exam' && q.explain) expWrap.classList.remove('hidden');
+    if(S.mode!=='exam' && q.explain) expWrap.classList.remove('hidden');
   }
   function addWrong(qid){
-    const key=`${state.subjIdx}:${qid}`;
-    const exists=state.wrongBank.some(x=>`${x.s}:${x.q}`===key);
-    if(!exists){ state.wrongBank.unshift({s:state.subjIdx,q:qid}); state.wrongBank=state.wrongBank.slice(0,500); saveLS(LS_WRONG,state.wrongBank); }
+    const key=`${S.subjIdx}:${qid}`;
+    const exists=S.wrongBank.some(x=>`${x.s}:${x.q}`===key);
+    if(!exists){ S.wrongBank.unshift({s:S.subjIdx,q:qid}); S.wrongBank=S.wrongBank.slice(0,800); saveLS(LS_WRONG,S.wrongBank); }
   }
+  function prevQ(){ if(S.cur>0){ S.cur--; renderQuestion(); } }
+  function nextQ(){ if(S.cur<S.pool.length-1){ S.cur++; renderQuestion(); } }
 
-  function prevQ(){ if(state.cur>0){ state.cur--; renderQuestion(); } }
-  function nextQ(){ if(state.cur<state.pool.length-1){ state.cur++; renderQuestion(); } }
-
-  // ---------- submit/exam ----------
+  /* ---------- submit / history ---------- */
   function submitAll(){
-    if(state.mode!=='exam') return;
-    const total=state.pool.length; let correct=0; const wrongList=[];
+    if(S.mode!=='exam') return;
+    const total=S.pool.length; let correct=0; const wrongList=[];
     for(let i=0;i<total;i++){
-      const q=state.pool[i];
-      if(state.answers[i]===q.answer) correct++; else wrongList.push({s:state.subjIdx,q:q._id});
+      const q=S.pool[i];
+      if(S.answers[i]===q.answer) correct++; else wrongList.push({s:S.subjIdx,q:q._id});
     }
-    state.wrongBank=[...wrongList, ...state.wrongBank].slice(0,500); saveLS(LS_WRONG,state.wrongBank);
-    state.stats.total += total; state.stats.correct += correct; saveLS(LS_STATS,state.stats);
-    stopTimer();
+    S.wrongBank=[...wrongList, ...S.wrongBank].slice(0,800); saveLS(LS_WRONG,S.wrongBank);
+    S.stats.total += total; S.stats.correct += correct;
+    const subjName=S.subjects[S.subjIdx]?.name||'Môn'; S.stats.bySubj[subjName]=S.stats.bySubj[subjName]||{total:0,correct:0};
+    S.stats.bySubj[subjName].total += total; S.stats.bySubj[subjName].correct += correct;
+    saveLS(LS_STATS,S.stats);
 
+    stopTimer();
     const pct=Math.round(correct*100/Math.max(1,total));
     donut.style.setProperty('--p', `${pct*3.6}deg`);
     scoreText.textContent=`Đúng ${correct}/${total} câu (${pct}%).`;
-    timeText.textContent = state.seconds? `Thời gian: ${Math.floor(state.seconds/60)}m ${state.seconds%60}s` : '';
-    resultCard.classList.remove('hidden'); qCard.classList.add('hidden'); flashWrap.classList.add('hidden'); window.scrollTo({top:0,behavior:'smooth'});
+    timeText.textContent = S.seconds? `Thời gian: ${Math.floor(S.seconds/60)}m ${S.seconds%60}s` : '';
+    resultCard.classList.remove('hidden'); qCard.classList.add('hidden'); window.scrollTo({top:0,behavior:'smooth'});
 
-    btnReviewWrong.onclick = ()=>{ showSetup(); selFilter.value='wrong'; startFromSetup('practice'); };
-    btnRestart.onclick = ()=> startFromSetup(state.mode);
+    // lưu lịch sử
+    S.history.unshift({id:Date.now(), t:new Date().toLocaleString(), subjName, mode:'Thi thử', total, correct, secs:S.seconds});
+    S.history = S.history.slice(0,200);
+    saveLS(LS_HIST,S.history);
+    updateHomeStats();
   }
 
-  // ---------- sheet ----------
-  function buildGrid(){
-    qGrid.innerHTML='';
-    for(let i=0;i<state.pool.length;i++){
-      const b=document.createElement('button');
-      b.className='text-sm rounded-lg border px-2 py-1 '+(i===state.cur?'bg-brand text-white border-brand':'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700');
-      b.textContent=(i+1);
-      b.onclick=()=>{ state.cur=i; renderQuestion(); };
-      qGrid.appendChild(b);
-    }
-  }
+  /* ---------- timer ---------- */
+  function startTimer(){ S.seconds=0; timerLbl.textContent='00:00'; timerBox.hidden=false; S.timer=setInterval(()=>{ S.seconds++; const m=String(Math.floor(S.seconds/60)).padStart(2,'0'), s=String(S.seconds%60).padStart(2,'0'); timerLbl.textContent=`${m}:${s}`; },1000); }
+  function stopTimer(){ if(S.timer){ clearInterval(S.timer); S.timer=null; } }
 
-  // ---------- timer ----------
-  function startTimer(){ state.seconds=0; timerLbl.textContent='00:00'; timerBox.hidden=false; state.timer=setInterval(()=>{ state.seconds++; const m=String(Math.floor(state.seconds/60)).padStart(2,'0'), s=String(state.seconds%60).padStart(2,'0'); timerLbl.textContent=`${m}:${s}`; },1000); }
-  function stopTimer(){ if(state.timer){ clearInterval(state.timer); state.timer=null; } }
+  /* ---------- start from setup ---------- */
+  function startSession(){
+    S.subjIdx = selSubject.selectedIndex;
+    S.mode = selMode.value;
+    S.order = selOrder.value;
+    S.filter = selFilter.value;
+    S.search = txtSearch.value.trim();
 
-  // ---------- flashcards ----------
-  function enterFlash(){
-    const pool = makePool();
-    state.flash.list = pool.map(q=>({front:q.text, back: renderFlashBack(q)}));
-    state.flash.i=0;
-    qCard.classList.add('hidden'); resultCard.classList.add('hidden'); flashWrap.classList.remove('hidden');
-    renderFlash();
-  }
-  function renderFlashBack(q){
-    const opts=q.options.map((o,i)=>`<div class="mt-1"><b>${letters[i]}.</b> ${o}${i===q.answer?' <span class="text-green-600 dark:text-green-400">✓</span>':''}</div>`).join('');
-    return `<div class="text-sm"><div class="font-semibold mb-1">Đáp án đúng: <span class="text-green-600 dark:text-green-400">${letters[q.answer]}</span></div>${opts}</div>`;
-  }
-  function renderFlash(){
-    if(!state.flash.list.length){ fcFront.textContent='🔥 Bạn đã thuộc hết bộ thẻ!'; fcBack.classList.add('hidden'); fcMeta.textContent=''; return; }
-    const it=state.flash.list[state.flash.i];
-    fcFront.textContent = it.front;
-    fcBack.innerHTML = it.back;
-    fcBack.classList.add('hidden');
-    fcMeta.textContent = `Thẻ ${state.flash.i+1}/${state.flash.list.length}`;
-  }
+    S.pool = makePool();
+    S.cur=0; S.answers={}; S.checked={}; S.correct=0; S.wrong=0;
+    if(!S.pool.length){ byId('warn').classList.remove('hidden'); go('#setup'); return; }
+    byId('warn').classList.add('hidden');
 
-  // ---------- start from setup ----------
-  function startFromSetup(forceMode){
-    // sync selections
-    state.subjIdx = selSubject.selectedIndex;
-    state.mode = forceMode || setupMode;
-    state.order = selOrder.value;
-    state.filter = selFilter.value;
-    state.search = txtSearch.value.trim();
+    badgeSubj.textContent = S.subjects[S.subjIdx]?.name || 'Môn';
+    badgeMode.textContent = S.mode==='study'?'Học': S.mode==='practice'?'Luyện tập':'Thi thử';
+    const isExam=S.mode==='exam', isStudy=S.mode==='study', isPractice=S.mode==='practice';
 
-    state.pool = makePool();
-    state.cur=0; state.answers={}; state.checked={}; state.correct=0; state.wrong=0;
-    resultCard.classList.add('hidden');
-
-    badgeSubj.textContent = state.subjects[state.subjIdx]?.name || 'Môn';
-    badgeMode.textContent = state.mode==='study'?'Học': state.mode==='practice'?'Luyện tập': state.mode==='exam'?'Thi thử':'Flashcard';
-
-    if(!state.pool.length){ warn.classList.remove('hidden'); showSetup(); return; }
-    warn.classList.add('hidden');
-    showPlay();
-    buildGrid();
-
-    // hiển thị theo mode
-    const isExam = state.mode==='exam';
-    const isStudy = state.mode==='study';
-    const isPractice = state.mode==='practice';
-    const isFlash = state.mode==='flash';
-
-    qCard.classList.toggle('hidden', isFlash);
-    flashWrap.classList.toggle('hidden', !isFlash);
     btnCheck.classList.toggle('hidden', !isPractice);
     bCheck.classList.toggle('hidden', !isPractice);
     btnReveal.classList.toggle('hidden', !isStudy);
@@ -592,97 +653,246 @@
     btnSubmit.classList.toggle('hidden', !isExam);
     bSubmit.classList.toggle('hidden', !isExam);
 
+    resultCard.classList.add('hidden'); qCard.classList.remove('hidden');
     if(isExam){ startTimer(); } else { stopTimer(); timerBox.hidden=true; }
+    renderQuestion(); go('#play');
+  }
 
-    if(isFlash){
-      enterFlash();
-    }else{
-      renderQuestion();
+  /* ---------- Flashcards ---------- */
+  function enterFlash(){
+    // flashcards theo cấu hình hiện tại
+    S.subjIdx = selSubject.selectedIndex;
+    const base = S.subjects[S.subjIdx]?.questions||[];
+    let arr=base.map((q,idx)=>({...q,_id:idx}));
+    const key=norm(txtSearch.value||'');
+    if(key){ arr=arr.filter(q=> norm(q.text).includes(key) || q.options.some(o=>norm(o).includes(key))); }
+    if(selOrder.value==='shuffle') arr.sort(()=>Math.random()-.5);
+
+    S.flash.list = arr.map(q=>({front:q.text, back: renderFlashBack(q)}));
+    S.flash.i=0;
+    renderFlash();
+  }
+  function renderFlashBack(q){
+    const opts=q.options.map((o,i)=>`<div class="mt-1"><b>${letters[i]}.</b> ${escapeHtml(o)}${i===q.answer?' <span class="text-green-600 dark:text-green-400">✓</span>':''}</div>`).join('');
+    return `<div class="text-sm"><div class="font-semibold mb-1">Đáp án đúng: <span class="text-green-600 dark:text-green-400">${letters[q.answer]}</span></div>${opts}</div>`;
+  }
+  function renderFlash(){
+    if(!S.flash.list.length){ fcFront.textContent='Chưa có thẻ. Chọn môn ở Setup rồi quay lại đây nhé.'; fcBack.classList.add('hidden'); fcMeta.textContent=''; return; }
+    const it=S.flash.list[S.flash.i];
+    fcFront.textContent = it.front;
+    fcBack.innerHTML = it.back;
+    fcBack.classList.add('hidden');
+    fcMeta.textContent = `Thẻ ${S.flash.i+1}/${S.flash.list.length}`;
+  }
+
+  /* ---------- Review Wrong View ---------- */
+  function renderWrongView(){
+    const box=byId('wrongList'); box.innerHTML='';
+    if(!S.wrongBank.length){ box.innerHTML='<div class="text-sm text-slate-500">Không có câu sai nào gần đây.</div>'; return; }
+    // nhóm theo môn
+    const by={};
+    for(const w of S.wrongBank){
+      const subj=S.subjects[w.s]; if(!subj) continue;
+      by[w.s]=by[w.s]||[]; const q=subj.questions[w.q]; if(!q) continue;
+      by[w.s].push({qid:w.q, q});
+    }
+    for(const sIdx of Object.keys(by)){
+      const group=document.createElement('div');
+      group.className='rounded-xl border border-slate-200 dark:border-slate-800 p-3';
+      const h=document.createElement('div'); h.className='font-semibold mb-2'; h.textContent=S.subjects[sIdx]?.name||'Môn';
+      group.appendChild(h);
+      by[sIdx].slice(0,50).forEach((it,i)=>{
+        const row=document.createElement('details'); row.className='rounded-lg border border-slate-200 dark:border-slate-700 p-2';
+        const sum=document.createElement('summary'); sum.className='cursor-pointer text-sm font-medium'; sum.textContent=`${i+1}. ${it.q.text}`;
+        const ans=document.createElement('div'); ans.className='mt-2 text-sm';
+        ans.innerHTML = renderFlashBack(it.q);
+        row.appendChild(sum); row.appendChild(ans); group.appendChild(row);
+      });
+      box.appendChild(group);
     }
   }
 
-  // ---------- events ----------
-  document.addEventListener('DOMContentLoaded', async ()=>{
-    // theme
-    on(btnTheme,'click',()=> document.documentElement.classList.toggle('dark'));
+  /* ---------- Browser View ---------- */
+  function renderBrowser(){
+    const sIdx=byId('brSubj').selectedIndex ?? 0;
+    const subj=S.subjects[sIdx]; if(!subj) return;
+    const key=norm(byId('brSearch').value||'');
+    const list=byId('brList'); list.innerHTML='';
+    subj.questions.forEach((q,idx)=>{
+      if(key && !(norm(q.text).includes(key) || q.options.some(o=>norm(o).includes(key)))) return;
+      const row=document.createElement('details'); row.className='rounded-xl border border-slate-200 dark:border-slate-800 p-3';
+      const sum=document.createElement('summary'); sum.className='cursor-pointer font-medium'; sum.textContent=`${idx+1}. ${q.text}`;
+      const box=document.createElement('div'); box.className='mt-2 space-y-2';
+      q.options.forEach((o,i)=>{
+        const div=document.createElement('div'); div.className='px-3 py-2 rounded-lg border text-sm '+(i===q.answer?' border-green-600 text-green-700 dark:text-green-300':' border-slate-200 dark:border-slate-700');
+        div.textContent = `${letters[i]}. ${o}`;
+        box.appendChild(div);
+      });
+      row.appendChild(sum); row.appendChild(box); list.appendChild(row);
+    });
+  }
 
-    // import/export
-    on(btnExport,'click',()=>{
-      const data={ bookmarks: state.bookmarks, wrongBank: state.wrongBank, stats: state.stats };
+  /* ---------- Stats View ---------- */
+  function renderStats(){
+    const total=S.stats.total||0; const correct=S.stats.correct||0; const acc= total? Math.round(correct*100/total) : 0;
+    byId('sumText').textContent = `Đúng ${correct}/${total} (${acc}%)`;
+    byId('sumDonut').style.setProperty('--p', `${acc*3.6}deg`);
+    byId('sumBar').style.width = acc+'%';
+
+    const box=byId('bySubj'); box.innerHTML='';
+    const entries=Object.entries(S.stats.bySubj||{});
+    if(!entries.length){ box.innerHTML='<div class="text-sm text-slate-500">Chưa có dữ liệu.</div>'; return; }
+    entries.forEach(([name,st])=>{
+      const a = st.total? Math.round(st.correct*100/st.total) : 0;
+      const row=document.createElement('div'); row.className='p-2 rounded-xl border border-slate-200 dark:border-slate-800';
+      row.innerHTML=`<div class="text-sm font-medium">${escapeHtml(name)}</div>
+                     <div class="text-xs text-slate-500 dark:text-slate-400 mb-1">Đúng ${st.correct}/${st.total} (${a}%)</div>
+                     <div class="bar"><i style="width:${a}%"></i></div>`;
+      box.appendChild(row);
+    });
+  }
+
+  /* ---------- History View ---------- */
+  function renderHistory(){
+    const box=byId('histList'); box.innerHTML='';
+    if(!S.history.length){ box.innerHTML='<div class="text-sm text-slate-500">Chưa có bài làm nào.</div>'; return; }
+    S.history.forEach((h,i)=>{
+      const card=document.createElement('div'); card.className='rounded-xl border border-slate-200 dark:border-slate-800 p-3 flex items-center gap-3';
+      const pct = h.total? Math.round(h.correct*100/h.total):0;
+      card.innerHTML = `<div class="w-14">
+        <div class="donut" style="--p:${pct*3.6}deg"></div>
+      </div>
+      <div class="flex-1">
+        <div class="text-sm font-semibold">${escapeHtml(h.subjName)} — ${escapeHtml(h.mode)}</div>
+        <div class="text-xs text-slate-500">${h.t} • ${h.correct}/${h.total} (${pct}%) • ${Math.floor((h.secs||0)/60)}m ${ (h.secs||0)%60 }s</div>
+      </div>
+      <button class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700">Luyện lại</button>`;
+      card.querySelector('button').onclick = ()=>{
+        // luyện lại nhanh theo môn đó, mode luyện tập
+        selSubject.selectedIndex = S.subjects.findIndex(s=>s.name===h.subjName);
+        selMode.value = 'practice';
+        selCount.value = 'all';
+        selOrder.value = 'shuffle';
+        selFilter.value = 'all';
+        txtSearch.value = '';
+        startSession();
+      };
+      box.appendChild(card);
+    });
+  }
+
+  /* ---------- Settings ---------- */
+  function setTheme(mode){
+    const root=document.documentElement;
+    if(mode==='dark') root.classList.add('dark');
+    else if(mode==='light') root.classList.remove('dark');
+    else{ // auto
+      window.matchMedia('(prefers-color-scheme: dark)').matches ? root.classList.add('dark') : root.classList.remove('dark');
+    }
+  }
+
+  /* ---------- tiny utils ---------- */
+  function escapeHtml(s){ return (s??'').toString().replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+
+  /* ---------- events ---------- */
+  document.addEventListener('DOMContentLoaded', async ()=>{
+    // theme buttons
+    on(byId('btnTheme'),'click',()=> document.documentElement.classList.toggle('dark'));
+    on(byId('setDark'),'click',()=> setTheme('dark'));
+    on(byId('setLight'),'click',()=> setTheme('light'));
+    on(byId('setAuto'),'click',()=> setTheme('auto'));
+
+    // drawer
+    on(byId('btnNav'),'click',()=> drawer(true));
+    on(byId('btnCloseDrawer'),'click',()=> drawer(false));
+    $$('#drawer .navbtn').forEach(b=> on(b,'click',()=> go(b.dataset.goto)));
+
+    // home button
+    on(byId('btnHome'),'click',()=> go('#setup'));
+
+    // import/export (setup)
+    const doExport=()=>{
+      const data={ bookmarks:S.bookmarks, wrongBank:S.wrongBank, stats:S.stats, history:S.history };
       const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
       const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='quiz-progress.json'; a.click(); URL.revokeObjectURL(a.href);
-    });
-    on(btnImport,'click',()=> fileImport.click());
-    on(fileImport,'change', async e=>{
-      const f=e.target.files?.[0]; if(!f) return;
-      try{ const t=await f.text(); const d=JSON.parse(t);
-        if(d.bookmarks) state.bookmarks=d.bookmarks;
-        if(d.wrongBank) state.wrongBank=d.wrongBank;
-        if(d.stats) state.stats=d.stats;
-        saveLS(LS_BOOK,state.bookmarks); saveLS(LS_WRONG,state.wrongBank); saveLS(LS_STATS,state.stats);
-        alert('Nhập tiến trình thành công!');
+    };
+    const doImport=async (file)=>{
+      if(!file) return;
+      try{
+        const t=await file.text(); const d=JSON.parse(t);
+        if(d.bookmarks) S.bookmarks=d.bookmarks;
+        if(d.wrongBank) S.wrongBank=d.wrongBank;
+        if(d.stats) S.stats=d.stats;
+        if(d.history) S.history=d.history;
+        saveLS(LS_BOOK,S.bookmarks); saveLS(LS_WRONG,S.wrongBank); saveLS(LS_STATS,S.stats); saveLS(LS_HIST,S.history);
+        updateHomeStats(); alert('Nhập tiến trình thành công!');
       }catch{ alert('File không hợp lệ.'); }
-      e.target.value='';
+    };
+    on(byId('btnExport'),'click',doExport);
+    on(byId('btnImport'),'click',()=> byId('fileImport').click());
+    on(byId('fileImport'),'change',e=>{ doImport(e.target.files?.[0]); e.target.value=''; });
+
+    // import/export (settings)
+    on(byId('btnExport2'),'click',doExport);
+    on(byId('btnImport2'),'click',()=> byId('fileImport2').click());
+    on(byId('fileImport2'),'change',e=>{ doImport(e.target.files?.[0]); e.target.value=''; });
+
+    // reset
+    on(byId('btnReset'),'click',()=>{
+      if(confirm('Xóa toàn bộ tiến trình đã lưu?')){ localStorage.clear(); location.reload(); }
     });
 
     // quick wrong
-    on(btnWrong,'click',()=>{ selFilter.value='wrong'; });
+    on(byId('btnWrongQuick'),'click',()=>{ go('#review'); });
 
-    // start
-    on(btnStart,'click', ()=> startFromSetup());
+    // browser selects
+    on(byId('brSubj'),'change',renderBrowser);
+    on(byId('brSearch'),'input',()=> { renderBrowser(); });
 
-    // back to setup
-    on(btnBackSetup,'click', ()=>{ stopTimer(); showSetup(); });
+    // start session
+    on(byId('btnStart'),'click',startSession);
 
-    // bottom actions
-    on(bPrev,'click', ()=> prevQ());
-    on(bNext,'click', ()=> nextQ());
-    on(bCheck,'click', ()=> markCurrent(true));
-    on(bReveal,'click', ()=>{
-      if(state.mode!=='study') return;
-      clearMarks(); const q=state.pool[state.cur]; const labs=optList.querySelectorAll('label');
+    // play controls
+    on(btnPrev,'click',prevQ); on(btnNext,'click',nextQ);
+    on(bPrev,'click',prevQ); on(bNext,'click',nextQ);
+    on(btnCheck,'click',()=>markCurrent(true)); on(bCheck,'click',()=>markCurrent(true));
+    on(btnReveal,'click',()=>{
+      if(S.mode!=='study') return;
+      clearMarks(); const q=S.pool[S.cur]; const labs=optList.querySelectorAll('label');
       if(labs[q.answer]) labs[q.answer].classList.add('is-correct','animate-pop');
       if(q.explain) expWrap.classList.remove('hidden');
     });
-    on(bSubmit,'click', ()=> submitAll());
-    on(bSheet,'click', ()=> sheet.classList.toggle('hidden'));
-    on(btnSheetClose,'click', ()=> sheet.classList.add('hidden'));
-
-    // card buttons
-    on(btnPrev,'click', ()=> prevQ());
-    on(btnNext,'click', ()=> nextQ());
-    on(btnCheck,'click', ()=> markCurrent(true));
-    on(btnReveal,'click', ()=>{
-      if(state.mode!=='study') return;
-      clearMarks(); const q=state.pool[state.cur]; const labs=optList.querySelectorAll('label');
-      if(labs[q.answer]) labs[q.answer].classList.add('is-correct','animate-pop');
-      if(q.explain) expWrap.classList.remove('hidden');
+    on(bReveal,'click',()=>btnReveal.click());
+    on(btnBookmark,'click',()=>{
+      const q=S.pool[S.cur]; const key=`${S.subjIdx}:${q._id}`;
+      S.bookmarks[key]=!S.bookmarks[key]; saveLS(LS_BOOK,S.bookmarks);
+      btnBookmark.textContent = S.bookmarks[key] ? '🔖 Đã đánh dấu' : '🔖 Đánh dấu';
     });
-    on(btnSubmit,'click', ()=> submitAll());
-    on(btnBookmark,'click', ()=>{
-      const q=state.pool[state.cur]; const key=`${state.subjIdx}:${q._id}`;
-      state.bookmarks[key]=!state.bookmarks[key]; saveLS(LS_BOOK,state.bookmarks);
-      btnBookmark.textContent = state.bookmarks[key] ? '🔖 Đã đánh dấu' : '🔖 Đánh dấu';
-    });
+    on(btnSubmit,'click',submitAll); on(bSubmit,'click',submitAll);
+    on(btnRestart,'click',startSession);
+    on(btnReviewWrong,'click',()=> go('#review'));
 
-    // flash buttons
-    on(fcFlip,'click', ()=> fcBack.classList.toggle('hidden'));
-    on(fcPrev,'click', ()=>{ if(state.flash.i>0){ state.flash.i--; renderFlash(); } });
-    on(fcNext,'click', ()=>{ if(state.flash.i<state.flash.list.length-1){ state.flash.i++; renderFlash(); } });
-    on(fcAgain,'click', ()=>{
-      const it=state.flash.list[state.flash.i];
-      state.flash.list.push(it);
-      state.flash.i++;
-      if(state.flash.i>=state.flash.list.length) state.flash.i=state.flash.list.length-1;
+    // flash events
+    on(fcFlip,'click',()=> fcBack.classList.toggle('hidden'));
+    on(fcPrev,'click',()=>{ if(S.flash.i>0){ S.flash.i--; renderFlash(); } });
+    on(fcNext,'click',()=>{ if(S.flash.i<S.flash.list.length-1){ S.flash.i++; renderFlash(); } });
+    on(fcAgain,'click',()=>{
+      const it=S.flash.list[S.flash.i];
+      S.flash.list.push(it); S.flash.i=Math.min(S.flash.i+1, S.flash.list.length-1);
       renderFlash(); vibrate(20);
     });
-    on(fcGood,'click', ()=>{
-      state.flash.list.splice(state.flash.i,1);
-      if(state.flash.i>=state.flash.list.length) state.flash.i=Math.max(0,state.flash.list.length-1);
-      if(state.flash.list.length){ renderFlash(); } else { fcFront.textContent='🔥 Bạn đã thuộc hết bộ thẻ!'; fcBack.classList.add('hidden'); fcMeta.textContent=''; fire(); }
+    on(fcGood,'click',()=>{
+      S.flash.list.splice(S.flash.i,1);
+      if(S.flash.i>=S.flash.list.length) S.flash.i=Math.max(0,S.flash.list.length-1);
+      if(S.flash.list.length){ renderFlash(); } else { fcFront.textContent='🔥 Bạn đã thuộc hết bộ thẻ!'; fcBack.classList.add('hidden'); fcMeta.textContent=''; fire(); }
     });
 
-    // vuốt chuyển câu
+    // review view
+    on(byId('btnClearWrong'),'click',()=>{
+      if(confirm('Xóa danh sách câu sai gần đây?')){ S.wrongBank=[]; saveLS(LS_WRONG,S.wrongBank); renderWrongView(); }
+    });
+
+    // play: vuốt trái/phải để chuyển câu
     (function attachSwipe(){
       let sx=0,sy=0,dx=0,dy=0; const area=$('main');
       on(area,'touchstart',e=>{const t=e.touches[0]; sx=t.clientX; sy=t.clientY;});
@@ -690,12 +900,18 @@
       on(area,'touchend',()=>{ if(Math.abs(dx)>60 && Math.abs(dy)<40){ if(dx<0) nextQ(); else prevQ(); } dx=dy=0;});
     })();
 
-    // load data
-    state.subjects = await loadSubjects();
-    if(!state.subjects.length){ warn.classList.remove('hidden'); selSubject.innerHTML='<option>Chưa có dữ liệu</option>'; }
-    else { warn.classList.add('hidden'); renderSubjects(); }
-  });
+    // nav hash
+    window.addEventListener('hashchange',()=> go(location.hash||'#setup'));
 
+    // Load data
+    S.subjects = await loadSubjects();
+    if(!S.subjects.length){ byId('warn').classList.remove('hidden'); selSubject.innerHTML='<option>Chưa có dữ liệu</option>'; }
+    else { byId('warn').classList.add('hidden'); renderSubjectsSelects(); }
+
+    // init
+    enterFlash(); // chuẩn bị flash default theo môn đầu
+    go(location.hash||'#setup');
+  });
 })();
 </script>
 </body>
